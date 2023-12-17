@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_music_clouds/main.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter_music_clouds/models/Const.dart';
 
 class Upload extends StatefulWidget {
   const Upload({super.key});
@@ -17,12 +18,19 @@ class Upload extends StatefulWidget {
 class _UploadState extends State<Upload> {
   TextEditingController songName = TextEditingController();
   TextEditingController artistName = TextEditingController();
+  TextEditingController songType = TextEditingController();
 
   DatabaseReference dbRef = FirebaseDatabase.instance.ref("app/songInfos");
 
   PlatformFile? pickedImage;
   PlatformFile? pickedSong;
   UploadTask? uploadTask;
+
+    @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+  }
 
   Future upload() async {
     final imagePath = 'artist-images/${pickedImage!.name}';
@@ -32,13 +40,6 @@ class _UploadState extends State<Upload> {
     setState(() {
       uploadTask = imageRef.putFile(imageFile);
     });
-
-    
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    super.dispose();
-  }
 
     // if (uploadTask != null) {
     final snapshot = await uploadTask!.whenComplete(() {});
@@ -73,6 +74,10 @@ class _UploadState extends State<Upload> {
       "songUrl": songUrlDownload,
       "artistName": artistName.text,
       "songName": songName.text,
+      "type": songType.text,
+      'userId': currentUser!.uid,
+      "like": 0,
+      "listened": 0
     });
   }
 
@@ -143,14 +148,21 @@ class _UploadState extends State<Upload> {
               padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
               child: TextField(
                 controller: songName,
-                decoration: const InputDecoration(hintText: "Enter song name"),
+                decoration: const InputDecoration(hintText: "Tên bài nhạc"),
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
               child: TextField(
                 controller: artistName,
-                decoration: const InputDecoration(hintText: "Enter artist name"),
+                decoration: const InputDecoration(hintText: "Tên ca sĩ"),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
+              child: TextField(
+                controller: songType,
+                decoration: const InputDecoration(hintText: "Thể loại"),
               ),
             ),
             ElevatedButton(onPressed: upload, child: const Text("Upload", style: TextStyle(color: Colors.white))),

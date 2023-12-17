@@ -1,7 +1,9 @@
 // import 'package:audio_waveforms/audio_waveforms.dart';
 // import 'package:path_provider/path_provider.dart';
 // import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_music_clouds/models/Const.dart';
 import 'package:flutter_music_clouds/models/SongInfos.dart';
 import 'package:flutter_music_clouds/models/commonJustAudio.dart';
 import 'package:flutter_music_clouds/widgets/inheritedWidget.dart';
@@ -39,11 +41,50 @@ class _SongspageState extends State<Songspage> {
   void initState() {
     super.initState();
     initPlatformState();
+    updateUser();
   }
 
   @override
   void dispose() {
     super.dispose();
+  }
+
+  void updateUser() async {
+    try {
+      // ----------- Lấy id của song --------------------//
+      DatabaseReference songRef =
+          FirebaseDatabase.instance.ref().child('app/songInfos');
+      final songSnapshot = await songRef
+          .orderByChild('songUrl')
+          .equalTo('${widget.songInfo.songUrl}')
+          .once();
+
+      Map<dynamic, dynamic> songMap =
+          songSnapshot.snapshot.value as Map<dynamic, dynamic>;
+      print(songMap.keys.first);
+
+      // ----------- Update trường recentPlayed --------------------//
+      DatabaseReference ref =
+          FirebaseDatabase.instance.ref().child('app/users');
+      final snapshot =
+          await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
+
+      if (snapshot.snapshot.exists) {
+        Map<dynamic, dynamic> userMap =
+            snapshot.snapshot.value as Map<dynamic, dynamic>;
+        print(snapshot.snapshot.children.first.child('recentPlayed').value);
+        userMap['recentPlay'] = 'hihi';
+        await ref.update({
+          "${userMap.keys.first}/recentPlayed":
+              "${songMap.keys.first},${snapshot.snapshot.children.first.child('recentPlayed').value}"
+        });
+        print('Đã cập nhật recentPlayed cho user ${currentUser!.uid}');
+      } else {
+        print('Không tìm thấy user với id ${currentUser!.uid}');
+      }
+    } catch (error) {
+      print('Lỗi: $error');
+    }
   }
 
   Future<void> initPlatformState() async {

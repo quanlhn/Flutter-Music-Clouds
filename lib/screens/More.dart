@@ -1,21 +1,13 @@
-import "package:flutter/material.dart";
+import 'package:flutter/material.dart';
+import 'package:flutter_music_clouds/models/AuthController.dart';
+import 'package:flutter_music_clouds/screens/LoginScreen.dart';
+import 'package:get/get.dart';
 
-class Library extends StatefulWidget {
-  const Library({super.key});
 
-  @override
-  State<Library> createState() => _LibraryState();
-}
 
-class _LibraryState extends State<Library> {
+class More extends StatelessWidget {
+  const More({super.key});
 
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(2, 10, 2, 10),
@@ -94,8 +86,11 @@ class _LibraryState extends State<Library> {
             
             // stations
             GestureDetector(
-              onTap: () {
-
+              onTap: () async {
+                await Get.put(
+                    AuthController().signoutMethod(context));
+                // chuyển màn Login (không quay lại được)
+                Get.offAll(() => const LoginScreen());
               },
               child: Container(
                 width: MediaQuery.of(context).size.width - 25.0,
@@ -106,7 +101,7 @@ class _LibraryState extends State<Library> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Stations'),
+                    Text('Đăng xuất'),
                     Icon(Icons.arrow_forward_ios)
                   ],
                 ),
