@@ -1,22 +1,18 @@
-import 'dart:io';
-import 'dart:ui';
-
 // import 'package:audio_waveforms/audio_waveforms.dart';
 // import 'package:path_provider/path_provider.dart';
 // import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_music_clouds/models/SongInfos.dart';
 import 'package:flutter_music_clouds/models/commonJustAudio.dart';
-import 'package:flutter_music_clouds/widgets/colorScheme.dart';
 import 'package:flutter_music_clouds/widgets/inheritedWidget.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
 
 class Songspage extends StatefulWidget {
   SongInfo songInfo;
-  AudioPlayer _player;
+  final AudioPlayer _player;
 
-  Songspage(this.songInfo, this._player);
+  Songspage(this.songInfo, this._player, {super.key});
   @override
   _SongspageState createState() => _SongspageState();
 }
@@ -32,6 +28,13 @@ class _SongspageState extends State<Songspage> {
   // Duration _currentPosition = Duration.zero;
   double volumn = 0.5;
 
+  void updateIsAppPlaying(BuildContext context) {
+    final myInheritedWidget = MyInheritedWidget.of(context);
+    if (myInheritedWidget != null) {
+      myInheritedWidget.updateIsAppPlaying(true);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -46,23 +49,23 @@ class _SongspageState extends State<Songspage> {
   Future<void> initPlatformState() async {
     // print(MyInheritedWidget.of(context)!.count);
     widget._player.stop();
-    final duration = await widget._player.setUrl(widget.songInfo.songUrl);
+    // final duration = await widget._player.setUrl(widget.songInfo.songUrl);
     await widget._player.setLoopMode(LoopMode.one);
-    widget._player.play();
+    // widget._player.play();
+    final myInheritedWidget = MyInheritedWidget.of(context);
+    if (myInheritedWidget == null) {
+      print('no myinheritedwidget');
+    } else {
+      print('player is ${myInheritedWidget.player.playing}');
+      // setState(() {
+      //   myInheritedWidget.player = true;
+      // });
+    }
     setState(() {
       isPlaying = true;
+      widget._player.setUrl(widget.songInfo.songUrl);
+      widget._player.play();
     });
-    // widget._player.positionStream.listen((position) {
-    //   setState(() {
-    //     _currentPosition = position;
-    //   });
-    // });
-    // directory = await getDownloadsDirectory();
-    // path = widget.songInfo.songUrl;
-    // print('SONG URL: ${path}');
-
-    // await controller.preparePlayer(
-    //     path: path, shouldExtractWaveform: true, noOfSamples: 100, volume: 1.0);
   }
 
   void showVolumeDialog(BuildContext context) {
@@ -132,31 +135,9 @@ class _SongspageState extends State<Songspage> {
               widget.songInfo.artistName,
               style: const TextStyle(fontSize: 15.0),
             ),
-            SizedBox(
+            const SizedBox(
               height: 10.0,
             ),
-            // Column(
-            //   mainAxisAlignment: MainAxisAlignment.center,
-            //   children: [
-            //     // Hiển thị thanh tiến trình
-            //     Slider(
-            //       value: widget._player.position.inMilliseconds.toDouble(),
-            //       min: 0.0,
-            //       max: widget._player.duration?.inMilliseconds?.toDouble() ??
-            //           0.0,
-            //       onChanged: (value) {
-            //         // Điều khiển tiến trình khi người dùng vuốt thanh trượt
-            //         widget._player.seek(Duration(milliseconds: value.toInt()));
-            //       },
-            //       activeColor: Theme.of(context).colorScheme.onSecondary,
-            //     ),
-
-            //     // Hiển thị thời gian hiện tại / tổng thời gian
-            //     Text(
-            //       '${widget._player.position} / ${widget._player.duration}',
-            //     ),
-            //   ],
-            // ),
             StreamBuilder<PositionData>(
               stream: _positionDataStream,
               builder: (context, snapshot) {

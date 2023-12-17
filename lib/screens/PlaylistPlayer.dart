@@ -10,10 +10,10 @@ import 'package:rxdart/rxdart.dart';
 
 class PlaylistPlayer extends StatefulWidget {
   // SongInfo songInfo;
-  AudioPlayer _player;
+  final AudioPlayer _player;
   List<SongInfo> playlistInfo;
 
-  PlaylistPlayer(this._player, this.playlistInfo);
+  PlaylistPlayer(this._player, this.playlistInfo, {super.key});
 
   @override
   State<PlaylistPlayer> createState() => _PlaylistPlayerState();
@@ -128,7 +128,6 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
   @override
   void dispose() {
     ambiguate(WidgetsBinding.instance)!.removeObserver(this);
-    widget._player.dispose();
     super.dispose();
   }
 

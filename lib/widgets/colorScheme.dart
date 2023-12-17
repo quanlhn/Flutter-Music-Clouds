@@ -23,7 +23,7 @@ class MyColorScheme {
     background: const Color(0xFF261D1D),
     error: Colors.red,
     onPrimary: Colors.white,
-    onSecondary: Color.fromARGB(255, 220, 75, 13),
+    onSecondary: const Color.fromARGB(255, 220, 75, 13),
     onSurface: Colors.white,
     onBackground: Colors.white,
     onError: Colors.white,

@@ -6,8 +6,8 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String actionText;
   // final Function onActionPressed;
 
-  CustomAppBar(
-      {required this.title,
+  const CustomAppBar(
+      {super.key, required this.title,
       required this.actionText,
       // required this.onActionPressed
       });
@@ -16,7 +16,7 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
   _CustomAppBarState createState() => _CustomAppBarState();
 
   @override
-  Size get preferredSize => Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
 
 class _CustomAppBarState extends State<CustomAppBar> {
@@ -35,19 +35,19 @@ class _CustomAppBarState extends State<CustomAppBar> {
     return AppBar(
       title: Text(
         widget.title,
-        style: TextStyle(color: Colors.white), // Màu tiêu đề
+        style: const TextStyle(color: Colors.white), // Màu tiêu đề
       ),
       centerTitle: true, // Đặt tiêu đề ở giữa
       actions: [
         IconButton(
-          icon: Icon(Icons.cloud_upload_outlined),
+          icon: const Icon(Icons.cloud_upload_outlined),
           onPressed: 
           // () {
           //   widget.onActionPressed();
           // },
           () =>
               Navigator.push(context, MaterialPageRoute(builder: (context) {
-            return Upload();
+            return const Upload();
           })),
         ),
       ],

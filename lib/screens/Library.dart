@@ -1,5 +1,4 @@
 import "package:flutter/material.dart";
-import "package:flutter_music_clouds/widgets/customAppBar.dart";
 
 class Library extends StatefulWidget {
   const Library({super.key});
@@ -18,7 +17,7 @@ class _LibraryState extends State<Library> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return const Padding(
       padding: EdgeInsets.fromLTRB(2, 10, 2, 10),
       child: Center()
     );
