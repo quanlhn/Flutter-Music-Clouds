@@ -117,59 +117,62 @@ class _UploadState extends State<Upload> {
             icon: const Icon(Icons.cloud_upload_rounded)),
           ],
       ),
-      body: Center(
-        child: Column(
-          children: <Widget>[
-            ElevatedButton(
-              onPressed: () => selectImage(),
-              child: const Text("Select Image", style: TextStyle(color: Colors.white)),
-            ),
-            if (pickedImage != null)
-              Expanded(
-                  child: Container(
-                      color: Colors.blue[200],
-                      height: 10,
-                      child: Center(
-                        child: Text(pickedImage!.name),
-                      ))),
-            ElevatedButton(
-              onPressed: () => selectSong(),
-              child: const Text("Select Songs", style: TextStyle(color: Colors.white)),
-            ),
-            if (pickedSong != null)
-              Expanded(
-                  child: Container(
-                      color: Colors.blue[200],
-                      height: 10,
-                      child: Center(
-                        child: Text(pickedSong!.name),
-                      ))),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
-              child: TextField(
-                controller: songName,
-                decoration: const InputDecoration(hintText: "Tên bài nhạc"),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            children: <Widget>[
+              ElevatedButton(
+                onPressed: () => selectImage(),
+                child: const Text("Select Image", style: TextStyle(color: Colors.white)),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
-              child: TextField(
-                controller: artistName,
-                decoration: const InputDecoration(hintText: "Tên ca sĩ"),
+              if (pickedImage != null)
+                Expanded(
+                    child: Container(
+                        color: Colors.blue[200],
+                        height: 10,
+                        child: Center(
+                          child: Text(pickedImage!.name),
+                        ))),
+              ElevatedButton(
+                onPressed: () => selectSong(),
+                child: const Text("Select Songs", style: TextStyle(color: Colors.white)),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
-              child: TextField(
-                controller: songType,
-                decoration: const InputDecoration(hintText: "Thể loại"),
+              if (pickedSong != null)
+                Expanded(
+                    child: Container(
+                        color: Colors.blue[200],
+                        height: 10,
+                        child: Center(
+                          child: Text(pickedSong!.name),
+                        ))),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
+                child: TextField(
+                  controller: songName,
+                  decoration: const InputDecoration(hintText: "Tên bài nhạc"),
+                ),
               ),
-            ),
-            ElevatedButton(onPressed: upload, child: const Text("Upload", style: TextStyle(color: Colors.white))),
-            buildProgress(),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
+                child: TextField(
+                  controller: artistName,
+                  decoration: const InputDecoration(hintText: "Tên ca sĩ"),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
+                child: TextField(
+                  controller: songType,
+                  decoration: const InputDecoration(hintText: "Thể loại"),
+                ),
+              ),
+              ElevatedButton(onPressed: upload, child: const Text("Upload", style: TextStyle(color: Colors.white))),
+              buildProgress(),
+            ],
+          ),
         ),
-      ),
+      
+      )
     );
   }
 

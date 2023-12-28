@@ -1,7 +1,10 @@
 import 'package:audio_session/audio_session.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_music_clouds/models/Const.dart';
+import 'package:flutter_music_clouds/models/PlayingSong.dart';
 import 'package:flutter_music_clouds/models/SongInfos.dart';
 import 'package:flutter_music_clouds/widgets/colorScheme.dart';
 import 'package:just_audio/just_audio.dart';
@@ -12,8 +15,9 @@ class PlaylistPlayer extends StatefulWidget {
   // SongInfo songInfo;
   final AudioPlayer _player;
   List<SongInfo> playlistInfo;
+  bool changeList;
 
-  PlaylistPlayer(this._player, this.playlistInfo, {super.key});
+  PlaylistPlayer(this._player, this.changeList , this.playlistInfo, {super.key});
 
   @override
   State<PlaylistPlayer> createState() => _PlaylistPlayerState();
@@ -36,81 +40,50 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
   late AudioPlayer _player;
   late final ConcatenatingAudioSource _playlist =
       ConcatenatingAudioSource(children: [
-        for (var i = 0; i < widget.playlistInfo.length; i++)
-          AudioSource.uri(
-            Uri.parse(widget.playlistInfo[i].songUrl),
-            tag: AudioMetadata(
-              album: widget.playlistInfo[i].artistName,
-              title: widget.playlistInfo[i].songName,
-              artwork: widget.playlistInfo[i].imageUrl,
-            ),
-          ),
+    for (var i = 0; i < widget.playlistInfo.length; i++)
+      AudioSource.uri(
+        Uri.parse(widget.playlistInfo[i].songUrl),
+        tag: AudioMetadata(
+          album: widget.playlistInfo[i].artistName,
+          title: widget.playlistInfo[i].songName,
+          artwork: widget.playlistInfo[i].imageUrl,
+        ),
+      ),
   ]);
-
-  // List<AudioSource> getList () {
-  //   List<AudioSource> t_list = [];
-  //   if (kIsWeb ||
-  //       ![TargetPlatform.windows, TargetPlatform.linux]
-  //           .contains(defaultTargetPlatform)) {
-  //     t_list.add(ClippingAudioSource(
-  //             start: const Duration(seconds: 60),
-  //             end: const Duration(seconds: 90),
-  //             child: AudioSource.uri(Uri.parse(
-  //                 "https://s3.amazonaws.com/scifri-episodes/scifri20181123-episode.mp3")),
-  //             tag: AudioMetadata(
-  //               album: "Science Friday",
-  //               title: "A Salute To Head-Scratching Science (30 seconds)",
-  //               artwork:
-  //                   "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg",
-  //             ),
-  //           ));
-  //   }
-  //   for (var i = 0; i < widget.playlistInfo.length; i++) {
-  //     t_list.add(
-  //       AudioSource.uri(
-  //         Uri.parse(
-  //             widget.playlistInfo[i].songUrl),
-  //         tag: AudioMetadata(
-  //           album: widget.playlistInfo[],
-  //           title: "A Salute To Head-Scratching Science",
-  //           artwork:
-  //               "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg",
-  //         ),
-  //       )
-  //     );
-  //   }
-
-  //   return t_list;
-  // }
 
   Future<void> _init() async {
     _player = widget._player;
-    final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.speech());
-    // Listen to errors during playback.
-    widget._player.playbackEventStream.listen((event) {},
-        onError: (Object e, StackTrace stackTrace) {
-      print('A stream error occurred: $e');
-    });
-    try {
-      // Preloading audio is not currently supported on Linux.
-      await widget._player.setAudioSource(_playlist,
-          preload: kIsWeb || defaultTargetPlatform != TargetPlatform.linux);
-    } catch (e) {
-      // Catch load errors: 404, invalid url...
-      print("Error loading audio source: $e");
+
+    print(widget._player.currentIndex);
+    if (widget.changeList) {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.speech());
+      // Listen to errors during playback.
+      widget._player.playbackEventStream.listen((event) {},
+          onError: (Object e, StackTrace stackTrace) {
+        print('A stream error occurred: $e');
+      });
+      try {
+        // Preloading audio is not currently supported on Linux.
+        await widget._player.setAudioSource(_playlist,
+            preload: kIsWeb || defaultTargetPlatform != TargetPlatform.linux);
+      } catch (e) {
+        // Catch load errors: 404, invalid url...
+        print("Error loading audio source: $e");
+      }
+      // Show a snackbar whenever reaching the end of an item in the playlist.
+      widget._player.positionDiscontinuityStream.listen((discontinuity) {
+        if (discontinuity.reason == PositionDiscontinuityReason.autoAdvance) {
+          _showItemFinished(discontinuity.previousEvent.currentIndex);
+        }
+      });
+      widget._player.processingStateStream.listen((state) {
+        if (state == ProcessingState.completed) {
+          _showItemFinished(widget._player.currentIndex);
+        }
+      });
+      updateUser(0);
     }
-    // Show a snackbar whenever reaching the end of an item in the playlist.
-    widget._player.positionDiscontinuityStream.listen((discontinuity) {
-      if (discontinuity.reason == PositionDiscontinuityReason.autoAdvance) {
-        _showItemFinished(discontinuity.previousEvent.currentIndex);
-      }
-    });
-    widget._player.processingStateStream.listen((state) {
-      if (state == ProcessingState.completed) {
-        _showItemFinished(widget._player.currentIndex);
-      }
-    });
   }
 
   void _showItemFinished(int? index) {
@@ -123,6 +96,44 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
       content: Text('Finished playing ${metadata.title}'),
       duration: const Duration(seconds: 1),
     ));
+  }
+
+  void updateUser(index) async {
+    try {
+      // ----------- Lấy id của song --------------------//
+      DatabaseReference songRef =
+          FirebaseDatabase.instance.ref().child('app/songInfos');
+      final songSnapshot = await songRef
+          .orderByChild('songUrl')
+          .equalTo('${widget.playlistInfo[index].songUrl}')
+          .once();
+
+      Map<dynamic, dynamic> songMap =
+          songSnapshot.snapshot.value as Map<dynamic, dynamic>;
+      print(songMap.keys.first);
+
+      // ----------- Update trường recentPlayed --------------------//
+      DatabaseReference ref =
+          FirebaseDatabase.instance.ref().child('app/users');
+      final snapshot =
+          await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
+
+      if (snapshot.snapshot.exists) {
+        Map<dynamic, dynamic> userMap =
+            snapshot.snapshot.value as Map<dynamic, dynamic>;
+        print(snapshot.snapshot.children.first.child('recentPlayed').value);
+        userMap['recentPlay'] = 'hihi';
+        await ref.update({
+          "${userMap.keys.first}/recentPlayed":
+              "${songMap.keys.first},${snapshot.snapshot.children.first.child('recentPlayed').value}"
+        });
+        print('Đã cập nhật recentPlayed cho user ${currentUser!.uid}');
+      } else {
+        print('Không tìm thấy user với id ${currentUser!.uid}');
+      }
+    } catch (error) {
+      print('Lỗi: $error');
+    }
   }
 
   @override
@@ -141,6 +152,27 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
     }
   }
 
+  void getTagForItem(int index) {
+    if (index >= 0 && index < widget.playlistInfo.length) {
+      updateUser(index);
+
+      final audioSource = _playlist.children[index];
+      final metadata = (audioSource as UriAudioSource).tag as AudioMetadata;
+      print('Artistname: ${metadata.album}'); //artistname
+      print('SongName: ${metadata.title}'); //songName
+      print('imageUrl: ${metadata.artwork}'); //imageUrl
+      print(audioSource.uri.toString());
+      setState(() {
+        playingSong = new PlayingSong(true);
+        playingSong.songInfo = new SongInfo(metadata.title, metadata.artwork,
+            audioSource.uri.toString(), metadata.album);
+        playingSong.listSong = widget.playlistInfo;
+      });
+    } else {
+      print('Index out of bounds.');
+    }
+  }
+
   Stream<PositionData> get _positionDataStream =>
       Rx.combineLatest3<Duration, Duration, Duration?, PositionData>(
           _player.positionStream,
@@ -155,8 +187,8 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: _scaffoldMessengerKey,
       theme: ThemeData(
-          colorScheme: MyColorScheme.darkColorScheme,
-        ),
+        colorScheme: MyColorScheme.darkColorScheme,
+      ),
       home: Scaffold(
         body: SafeArea(
           child: Column(
@@ -192,7 +224,7 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
               ),
               //Các nút điều hướng
               ControlButtons(_player),
-              
+
               // Thanh progress bar
               StreamBuilder<PositionData>(
                 stream: _positionDataStream,
@@ -268,7 +300,7 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
                   ),
                 ],
               ),
-              
+
               // danh sách các bài trong playlist
               SizedBox(
                 height: 240.0,
@@ -282,7 +314,6 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
                         if (oldIndex < newIndex) newIndex--;
                         _playlist.move(oldIndex, newIndex);
                       },
-                      
                       children: [
                         for (var i = 0; i < sequence.length; i++)
                           Dismissible(
@@ -303,16 +334,17 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
                                   ? MyColorScheme.darkColorScheme.surface
                                   : Colors.black54,
                               child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.white54)
-                                ),
-                                child: ListTile(
-                                  title: Text(sequence[i].tag.title as String),
-                                  onTap: () {
-                                    _player.seek(Duration.zero, index: i);
-                                  },
-                                )
-                              ),
+                                  decoration: BoxDecoration(
+                                      border:
+                                          Border.all(color: Colors.white54)),
+                                  child: ListTile(
+                                    title:
+                                        Text(sequence[i].tag.title as String),
+                                    onTap: () {
+                                      getTagForItem(i);
+                                      _player.seek(Duration.zero, index: i);
+                                    },
+                                  )),
                             ),
                           ),
                       ],
@@ -440,7 +472,6 @@ class ControlButtons extends StatelessWidget {
     );
   }
 }
-
 
 class AudioMetadata {
   final String album;

@@ -22,15 +22,16 @@ class _HomeState extends State<Home> {
   late List<SongInfo> songs = [];
   late List<SongInfo> playList = [];
   late List<SongInfo> recentPlayed = [];
+  late List<SongInfo> songAsType = [];
   // late SongInfo playingSong = {} as SongInfo;
-  late PlayingSong playingSong = new PlayingSong(false);
 
   @override
   void initState() {
     super.initState();
-    print(currentUser);
+    // print(currentUser);
     getRecentPlayedSongs();
     getPlaylist();
+    getSongsAsType();
     // getData();
 
     DatabaseReference songInfosRef =
@@ -48,9 +49,11 @@ class _HomeState extends State<Home> {
 
         tSongs.add(newSong);
       }
-      setState(() {
-        songs = tSongs;
-      });
+      if (mounted) {
+        setState(() {
+          songs = tSongs;
+        });
+      }
     });
     listenDatabase();
   }
@@ -71,22 +74,22 @@ class _HomeState extends State<Home> {
     });
   }
 
-  // @override
-  // void dispose() {
-  //   // TODO: implement dispose
+  @override
+  void dispose() {
+    // TODO: implement dispose
 
-  //   super.dispose();
-  // }
+    super.dispose();
+  }
 
   Future getRecentPlayedSongs() async {
     DatabaseReference ref = FirebaseDatabase.instance.ref().child('app/users');
     final snapshot =
         await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
-    print(snapshot.snapshot.children.first
-        .child('recentPlayed')
-        .value
-        .toString()
-        .split(','));
+    // print(snapshot.snapshot.children.first
+    //     .child('recentPlayed')
+    //     .value
+    //     .toString()
+    //     .split(','));
 
     final recentSongIds = snapshot.snapshot.children.first
         .child('recentPlayed')
@@ -142,6 +145,31 @@ class _HomeState extends State<Home> {
     return snapshot;
   }
 
+  Future getSongsAsType() async {
+    DatabaseReference ref =
+        FirebaseDatabase.instance.ref().child('app/songInfos');
+    final snapshot = await ref.orderByChild('type').equalTo('Kpop').once();
+    if (snapshot.snapshot.exists) {
+      final List<SongInfo> tSongs = [];
+      for (DataSnapshot dataSnapshot in snapshot.snapshot.children) {
+        // print(dataSnapshot.child('songName').value);
+        String songName = dataSnapshot.child('songName').value.toString();
+        String imageUrl = dataSnapshot.child('imageUrl').value.toString();
+        String artistName = dataSnapshot.child('artistName').value.toString();
+        String songUrl = dataSnapshot.child('songUrl').value.toString();
+        final newSong = SongInfo(songName, imageUrl, songUrl, artistName);
+        tSongs.add(newSong);
+      }
+      setState(() {
+        print(tSongs[0].imageUrl);
+        songAsType = tSongs;
+      });
+    } else {
+      print('No data available.');
+    }
+    return snapshot.snapshot;
+  }
+
   Future getPlaylist() async {
     DatabaseReference ref =
         FirebaseDatabase.instance.ref().child('app/songInfos');
@@ -174,7 +202,7 @@ class _HomeState extends State<Home> {
         oldString.substring(index + 1);
   }
 
-  Widget _buildPlaybackStatusWidget() {
+  Widget _buildPlaybackStatusWidget(fatherContext) {
     final myInheritedWidget = MyInheritedWidget.of(context);
     if (myInheritedWidget == null) {
       return Text('no inheritedwidget');
@@ -238,18 +266,56 @@ class _HomeState extends State<Home> {
                 // Name
                 if (playingSong.songInfo != null &&
                     playingSong.listSong.length == 0)
-                  Column(
-                    children: [
-                      Text(playingSong.songInfo!.songName),
-                      Text(playingSong.songInfo!.artistName),
-                    ],
-                  ),
+                  InkWell(
+                      onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (context) {
+                            final myInheritedWidget =
+                                MyInheritedWidget.of(fatherContext);
+
+                            if (myInheritedWidget == null) {
+                              return const Text(
+                                  'MyInheritedWidget was not found');
+                            }
+                            myInheritedWidget.updateIsAppPlaying(true);
+                            return MyInheritedWidget(
+                              isAppPlaying: myInheritedWidget.isAppPlaying,
+                              player: myInheritedWidget.player,
+                              child: Songspage(playingSong.songInfo!, false,
+                                  myInheritedWidget.player),
+                            );
+                          })),
+                      child: Column(
+                        children: [
+                          Text(playingSong.songInfo!.songName),
+                          Text(playingSong.songInfo!.artistName),
+                        ],
+                      )),
+
                 if (playingSong.listSong.length > 0)
-                  Column(
-                    children: [
-                      Text('111'),
-                    ],
-                  ),
+                  InkWell(
+                      onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (context) {
+                            final myInheritedWidget =
+                                MyInheritedWidget.of(fatherContext);
+
+                            if (myInheritedWidget == null) {
+                              return const Text(
+                                  'MyInheritedWidget was not found');
+                            }
+                            myInheritedWidget.updateIsAppPlaying(true);
+                            return MyInheritedWidget(
+                              isAppPlaying: myInheritedWidget.isAppPlaying,
+                              player: myInheritedWidget.player,
+                              child: PlaylistPlayer(myInheritedWidget.player, false, playingSong.listSong),
+                            );
+                          })),
+                      child: Column(
+                        children: [
+                          Text(playingSong.songInfo!.songName),
+                          Text(playingSong.songInfo!.artistName),
+                        ],
+                      )),
+
                 IconButton(
                   icon: Icon(Icons.favorite_outline),
                   onPressed: () {
@@ -298,19 +364,7 @@ class _HomeState extends State<Home> {
                   child: SingleChildScrollView(
                 child: Column(
                   children: <Widget>[
-                    // Bài mới nghe
-                    // FutureBuilder(
-                    //     future: getRecentPlayedSongs(),
-                    //     builder: (context, snapshot) {
-                    //       if (snapshot.connectionState ==
-                    //           ConnectionState.waiting) {
-                    //         return const Center(
-                    //           child: CircularProgressIndicator(),
-                    //         );
-                    //       } else {
-                    //         return
-                    //       }
-                    //     }),
+                    // recented play
                     Container(
                       height: 270,
                       decoration:
@@ -351,11 +405,11 @@ class _HomeState extends State<Home> {
                                             myInheritedWidget.isAppPlaying,
                                         player: myInheritedWidget.player,
                                         child: Songspage(recentPlayed[index],
-                                            myInheritedWidget.player),
+                                            true, myInheritedWidget.player),
                                       );
                                     })).then((value) => setState(() {
                                           playingSong = new PlayingSong(true,
-                                              songInfo: recentPlayed[index]);
+                                              songInfo: recentPlayed[0]);
                                         })),
                                     child: Card(
                                         elevation: 10.0,
@@ -391,9 +445,202 @@ class _HomeState extends State<Home> {
                         ],
                       ),
                     ),
+
                     Container(
                       height: 30.0,
                     ),
+
+                    //recomend category
+
+                    //  Container(
+                    //   height: 270,
+                    //   decoration:
+                    //       BoxDecoration(color: Color.fromARGB(255, 31, 29, 29)),
+                    //   child: Column(
+                    //     children: [
+                    //       Container(
+                    //         padding: const EdgeInsets.all(10.0),
+                    //         child: const Text(
+                    //           'Recommend Category',
+                    //           style: TextStyle(
+                    //             fontSize: 20,
+                    //             fontWeight: FontWeight.bold,
+                    //           ),
+                    //         ),
+                    //       ),
+                    //       Expanded(
+                    //         child: ListView.builder(
+                    //           scrollDirection: Axis.horizontal,
+                    //           itemCount: 1,
+                    //           itemBuilder: (context, index) {
+                    //             return SizedBox(
+                    //               width: 150,
+                    //               child: InkWell(
+                    //                 onTap: () => Navigator.push(context,
+                    //                     MaterialPageRoute(
+                    //                         builder: (context) {
+                    //                   final myInheritedWidget =
+                    //                       MyInheritedWidget.of(
+                    //                           fatherContext);
+                    //                   if (myInheritedWidget == null) {
+                    //                     return const Text(
+                    //                         'MyInheritedWidget was not found');
+                    //                   }
+                    //                   return MyInheritedWidget(
+                    //                     isAppPlaying: myInheritedWidget
+                    //                         .isAppPlaying,
+                    //                     player:
+                    //                         myInheritedWidget.player,
+                    //                     // child: Songspage(
+                    //                     //     songs[songs.length - 1 - index],
+                    //                     //     myInheritedWidget.player),
+                    //                     child: PlaylistPlayer(
+                    //                         myInheritedWidget.player,
+                    //                         songAsType),
+                    //                   );
+                    //                 })),
+                    //                 child: Card(
+                    //                     elevation: 10.0,
+                    //                     // Padding áp dụng trực tiếp cho Card
+                    //                     margin:
+                    //                         const EdgeInsets.all(10),
+                    //                     child: Column(
+                    //                       children: [
+                    //                         Image.network(
+                    //                           songAsType[0].imageUrl,
+                    //                           width: 140.0,
+                    //                           height: 125.0,
+                    //                           fit: BoxFit.cover,
+                    //                         ),
+                    //                         ListTile(
+                    //                           title: Text(
+                    //                             songAsType[0].songName,
+                    //                             style: const TextStyle(
+                    //                                 fontSize: 12.0),
+                    //                           ),
+                    //                           subtitle: Text(
+                    //                             songAsType[0].artistName,
+                    //                             style: const TextStyle(
+                    //                                 fontSize: 8.0),
+                    //                           ),
+                    //                         )
+                    //                         // Text(
+                    //                         //   songs[songs.length - 1 - index].songName,
+                    //                         //   style: const TextStyle(fontSize: 20.0),
+                    //                         // ),
+                    //                       ],
+                    //                     )),
+                    //               ),
+                    //             );
+                    //           },
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+
+                    // ),
+
+                    // FutureBuilder(
+                    //     future: getRecentPlayedSongs(),
+                    //     builder: (context, snapshot) {
+                    //       if (snapshot.connectionState ==
+                    //           ConnectionState.waiting) {
+                    //         return const Center(
+                    //           child: CircularProgressIndicator(),
+                    //         );
+                    //       } else {
+                    //         return SizedBox(
+                    //           height: 270,
+                    //           child: Column(
+                    //     children: [
+                    //       Container(
+                    //         padding: const EdgeInsets.all(10.0),
+                    //         child: const Text(
+                    //           'Recommend Category',
+                    //           style: TextStyle(
+                    //             fontSize: 20,
+                    //             fontWeight: FontWeight.bold,
+                    //           ),
+                    //         ),
+                    //       ),
+                    //       Expanded(
+                    //         child: ListView.builder(
+                    //           scrollDirection: Axis.horizontal,
+                    //           itemCount: 1,
+                    //           itemBuilder: (context, index) {
+                    //             return SizedBox(
+                    //               width: 150,
+                    //               child: InkWell(
+                    //                 onTap: () => Navigator.push(context,
+                    //                     MaterialPageRoute(
+                    //                         builder: (context) {
+                    //                   final myInheritedWidget =
+                    //                       MyInheritedWidget.of(
+                    //                           fatherContext);
+                    //                   if (myInheritedWidget == null) {
+                    //                     return const Text(
+                    //                         'MyInheritedWidget was not found');
+                    //                   }
+                    //                   return MyInheritedWidget(
+                    //                     isAppPlaying: myInheritedWidget
+                    //                         .isAppPlaying,
+                    //                     player:
+                    //                         myInheritedWidget.player,
+                    //                     // child: Songspage(
+                    //                     //     songs[songs.length - 1 - index],
+                    //                     //     myInheritedWidget.player),
+                    //                     child: PlaylistPlayer(
+                    //                         myInheritedWidget.player,
+                    //                         songAsType),
+                    //                   );
+                    //                 })),
+                    //                 child: Card(
+                    //                     elevation: 10.0,
+                    //                     // Padding áp dụng trực tiếp cho Card
+                    //                     margin:
+                    //                         const EdgeInsets.all(10),
+                    //                     child: Column(
+                    //                       children: [
+                    //                         Image.network(
+                    //                           songAsType[0].imageUrl,
+                    //                           width: 140.0,
+                    //                           height: 125.0,
+                    //                           fit: BoxFit.cover,
+                    //                         ),
+                    //                         ListTile(
+                    //                           title: Text(
+                    //                             songAsType[0].songName,
+                    //                             style: const TextStyle(
+                    //                                 fontSize: 12.0),
+                    //                           ),
+                    //                           subtitle: Text(
+                    //                             songAsType[0].artistName,
+                    //                             style: const TextStyle(
+                    //                                 fontSize: 8.0),
+                    //                           ),
+                    //                         )
+                    //                         // Text(
+                    //                         //   songs[songs.length - 1 - index].songName,
+                    //                         //   style: const TextStyle(fontSize: 20.0),
+                    //                         // ),
+                    //                       ],
+                    //                     )),
+                    //               ),
+                    //             );
+                    //           },
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+
+                    //         );
+                    //       }
+                    //     }),
+
+                    Container(
+                      height: 30.0,
+                    ),
+
                     //Bài mới
                     FutureBuilder(
                         future: getSongs(),
@@ -450,6 +697,7 @@ class _HomeState extends State<Home> {
                                                     songs[songs.length -
                                                         1 -
                                                         index],
+                                                    true,
                                                     myInheritedWidget.player),
                                               );
                                             })).then((value) => setState(() {
@@ -523,7 +771,7 @@ class _HomeState extends State<Home> {
                                   Container(
                                     padding: const EdgeInsets.all(10.0),
                                     child: const Text(
-                                      'Danh sách mới',
+                                      'Nghệ sĩ mới nổi',
                                       style: TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
@@ -557,10 +805,17 @@ class _HomeState extends State<Home> {
                                                 //     songs[songs.length - 1 - index],
                                                 //     myInheritedWidget.player),
                                                 child: PlaylistPlayer(
-                                                    myInheritedWidget.player,
+                                                    myInheritedWidget.player, true,
                                                     playList),
                                               );
-                                            })),
+                                            })).then((value) => setState(() {
+                                                  playingSong.isAppPlaying =
+                                                      true;
+                                                  playingSong.songInfo =
+                                                      playList[0];
+                                                  playingSong.listSong =
+                                                      playList;
+                                                })),
                                             child: Card(
                                                 elevation: 10.0,
                                                 // Padding áp dụng trực tiếp cho Card
@@ -616,7 +871,7 @@ class _HomeState extends State<Home> {
               )),
             ),
           ),
-          Container(child: _buildPlaybackStatusWidget()),
+          Container(child: _buildPlaybackStatusWidget(fatherContext)),
         ]));
   }
 }
