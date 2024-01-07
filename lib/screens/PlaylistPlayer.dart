@@ -47,6 +47,9 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
           album: widget.playlistInfo[i].artistName,
           title: widget.playlistInfo[i].songName,
           artwork: widget.playlistInfo[i].imageUrl,
+          like: widget.playlistInfo[i].like,
+          listened: widget.playlistInfo[i].listened,
+          type: widget.playlistInfo[i].type,
         ),
       ),
   ]);
@@ -105,7 +108,7 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
           FirebaseDatabase.instance.ref().child('app/songInfos');
       final songSnapshot = await songRef
           .orderByChild('songUrl')
-          .equalTo('${widget.playlistInfo[index].songUrl}')
+          .equalTo(widget.playlistInfo[index].songUrl)
           .once();
 
       Map<dynamic, dynamic> songMap =
@@ -116,7 +119,7 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
       DatabaseReference ref =
           FirebaseDatabase.instance.ref().child('app/users');
       final snapshot =
-          await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
 
       if (snapshot.snapshot.exists) {
         Map<dynamic, dynamic> userMap =
@@ -163,9 +166,9 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
       print('imageUrl: ${metadata.artwork}'); //imageUrl
       print(audioSource.uri.toString());
       setState(() {
-        playingSong = new PlayingSong(true);
-        playingSong.songInfo = new SongInfo(metadata.title, metadata.artwork,
-            audioSource.uri.toString(), metadata.album);
+        playingSong = PlayingSong(true);
+        playingSong.songInfo = SongInfo(metadata.title, metadata.artwork,
+            audioSource.uri.toString(), metadata.album, metadata.like, metadata.listened, metadata.type);
         playingSong.listSong = widget.playlistInfo;
       });
     } else {
@@ -355,20 +358,20 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton(
-          child: const Icon(Icons.add),
-          onPressed: () {
-            _playlist.add(AudioSource.uri(
-              Uri.parse("asset:///audio/nature.mp3"),
-              tag: AudioMetadata(
-                album: "Public Domain",
-                title: "Nature Sounds ${++_addedCount}",
-                artwork:
-                    "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg",
-              ),
-            ));
-          },
-        ),
+        // floatingActionButton: FloatingActionButton(
+        //   child: const Icon(Icons.add),
+        //   onPressed: () {
+        //     _playlist.add(AudioSource.uri(
+        //       Uri.parse("asset:///audio/nature.mp3"),
+        //       tag: AudioMetadata(
+        //         album: "Public Domain",
+        //         title: "Nature Sounds ${++_addedCount}",
+        //         artwork:
+        //             "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg",
+        //       ),
+        //     ));
+        //   },
+        // ),
       ),
     );
   }
@@ -477,10 +480,12 @@ class AudioMetadata {
   final String album;
   final String title;
   final String artwork;
-
+  int like;
+  int listened;
+  String type;  
   AudioMetadata({
     required this.album,
     required this.title,
-    required this.artwork,
+    required this.artwork, required this.like, required this.listened, required this.type
   });
 }

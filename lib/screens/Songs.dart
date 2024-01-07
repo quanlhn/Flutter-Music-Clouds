@@ -10,7 +10,6 @@ import 'package:flutter_music_clouds/widgets/inheritedWidget.dart';
 // import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
-import 'dart:convert';
 
 enum SampleItem { itemOne, itemTwo, itemThree }
 
@@ -59,12 +58,12 @@ class _SongspageState extends State<Songspage> {
           FirebaseDatabase.instance.ref().child('app/songInfos');
       final songSnapshot = await songRef
           .orderByChild('songUrl')
-          .equalTo('${widget.songInfo.songUrl}')
+          .equalTo(widget.songInfo.songUrl)
           .once();
 
       Map<dynamic, dynamic> songMap =
           songSnapshot.snapshot.value as Map<dynamic, dynamic>;
-      print(songMap.keys.first);
+      // print(songMap.keys.first);
       return songMap.keys.first;
     } catch (error) {
       return ('Lỗi: $error');
@@ -76,7 +75,7 @@ class _SongspageState extends State<Songspage> {
       DatabaseReference ref =
           FirebaseDatabase.instance.ref().child('app/users');
       final snapshot =
-          await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
 
       if (snapshot.snapshot.exists) {
         Map<dynamic, dynamic> userMap =
@@ -90,7 +89,63 @@ class _SongspageState extends State<Songspage> {
         print('Không tìm thấy user với id ${currentUser!.uid}');
       }
     } catch (error) {
-      print('Lỗi: ${error}');
+      print('Lỗi: $error');
+    }
+  }
+
+  Future<int> getCountListened() async {
+    var id = await getSongId();
+
+    final songRef = FirebaseDatabase.instance.ref();
+    final songSnapshot = await songRef.child('app/songInfos/$id').get();
+    if (songSnapshot.exists) {
+      return songSnapshot.child('listened').value as int;
+    } else {
+      print('No snapshot');
+    }
+
+    return -1;
+  }
+
+  void updateListened() async {
+    try {
+      // ----------- Lấy id của song --------------------//
+      DatabaseReference songRef =
+          FirebaseDatabase.instance.ref().child('app/songInfos');
+      final songSnapshot = await songRef
+          .orderByChild('songUrl')
+          .equalTo(widget.songInfo.songUrl)
+          .once();
+
+      Map<dynamic, dynamic> songMap =
+          songSnapshot.snapshot.value as Map<dynamic, dynamic>;
+
+      int currentListened = await getCountListened();
+      print('count listened: ${currentListened}');
+
+      if (currentListened != -1) {
+        await songRef.update({
+          "${songMap.keys.first.toString()}/listened": currentListened + 1,
+        });
+      }
+
+      // DatabaseReference countListenedRef = FirebaseDatabase.instance.ref();
+      // print('songMap.keys.firs: ${songMap.keys.first}');
+      // final listenedSnapshot = await countListenedRef
+      //     .child('app/songinfos/${songMap.keys.first}')
+      //     .get();
+
+      // if (listenedSnapshot.exists) {
+      //   int currentListened = listenedSnapshot.child('listened') as int;
+      //   print('count listened: ${currentListened}');
+      //   await songRef.update({
+      //     "listened": 2,
+      //   });
+      // } else {
+      //   print('no snapshot for listened');
+      // }
+    } catch (error) {
+      print('Lỗi: $error');
     }
   }
 
@@ -101,23 +156,23 @@ class _SongspageState extends State<Songspage> {
           FirebaseDatabase.instance.ref().child('app/songInfos');
       final songSnapshot = await songRef
           .orderByChild('songUrl')
-          .equalTo('${widget.songInfo.songUrl}')
+          .equalTo(widget.songInfo.songUrl)
           .once();
 
       Map<dynamic, dynamic> songMap =
           songSnapshot.snapshot.value as Map<dynamic, dynamic>;
-      print(songMap.keys.first);
+      // print(songMap.keys.first);
 
       // ----------- Update trường recentPlayed --------------------//
       DatabaseReference ref =
           FirebaseDatabase.instance.ref().child('app/users');
       final snapshot =
-          await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
 
       if (snapshot.snapshot.exists) {
         Map<dynamic, dynamic> userMap =
             snapshot.snapshot.value as Map<dynamic, dynamic>;
-        print(snapshot.snapshot.children.first.child('recentPlayed').value);
+        // print(snapshot.snapshot.children.first.child('recentPlayed').value);
         userMap['recentPlay'] = 'hihi';
         await ref.update({
           "${userMap.keys.first}/recentPlayed":
@@ -134,9 +189,10 @@ class _SongspageState extends State<Songspage> {
 
   Future<void> initPlatformState() async {
     if (widget.changeSong) {
+      updateListened();
       updateUser();
       // print(MyInheritedWidget.of(context)!.count);
-      print(widget._player.audioSource);
+      // print(widget._player.audioSource);
       widget._player.stop();
       // final duration = await widget._player.setUrl(widget.songInfo.songUrl);
       await widget._player.setLoopMode(LoopMode.one);
@@ -176,7 +232,7 @@ class _SongspageState extends State<Songspage> {
                   setState(() {
                     volumn = value;
                   });
-                  print(volumn);
+                  // print(volumn);
                 },
                 activeColor: Theme.of(context).colorScheme.onSecondary,
               ),
@@ -280,12 +336,12 @@ class _ControlButtonsState extends State<ControlButtons> {
           FirebaseDatabase.instance.ref().child('app/songInfos');
       final songSnapshot = await songRef
           .orderByChild('songUrl')
-          .equalTo('${widget.songInfo.songUrl}')
+          .equalTo(widget.songInfo.songUrl)
           .once();
 
       Map<dynamic, dynamic> songMap =
           songSnapshot.snapshot.value as Map<dynamic, dynamic>;
-      print(songMap.keys.first);
+      // print(songMap.keys.first);
       return songMap.keys.first;
     } catch (error) {
       return ('Lỗi: $error');
@@ -297,7 +353,7 @@ class _ControlButtonsState extends State<ControlButtons> {
       DatabaseReference ref =
           FirebaseDatabase.instance.ref().child('app/users');
       final snapshot =
-          await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
       String favoriteSongs = (snapshot.snapshot.children.first
           .child('playlist/favorite')
           .value) as String;
@@ -318,22 +374,22 @@ class _ControlButtonsState extends State<ControlButtons> {
       DatabaseReference ref =
           FirebaseDatabase.instance.ref().child('app/users');
       final snapshot =
-          await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
-      print(snapshot.snapshot.children.first.child('playlist/favorite').value);
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
+      // print(snapshot.snapshot.children.first.child('playlist/favorite').value);
       String songId = await getSongId();
       if (snapshot.snapshot.exists) {
         Map<dynamic, dynamic> userMap =
             snapshot.snapshot.value as Map<dynamic, dynamic>;
         await ref.update({
           "${userMap.keys.first}/playlist/favorite":
-              "${songId},${snapshot.snapshot.children.first.child('playlist/favorite').value}"
+              "$songId,${snapshot.snapshot.children.first.child('playlist/favorite').value}"
         });
         print('Đã cập nhật favourite cho user ${currentUser!.uid}');
       } else {
         print('Không tìm thấy user với id ${currentUser!.uid}');
       }
     } catch (error) {
-      print('Lỗi: ${error}');
+      print('Lỗi: $error');
     }
   }
 
@@ -342,15 +398,15 @@ class _ControlButtonsState extends State<ControlButtons> {
       DatabaseReference ref =
           FirebaseDatabase.instance.ref().child('app/users');
       final snapshot =
-          await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
-      print(snapshot.snapshot.children.first.child('playlist/favorite').value);
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
+      // print(snapshot.snapshot.children.first.child('playlist/favorite').value);
       if (snapshot.snapshot.exists) {
         String songId = await getSongId();
         String originFavorite = snapshot.snapshot.children.first
             .child('playlist/favorite')
             .value as String;
         String newFavorite =
-            originFavorite.replaceAll(originFavorite, '${songId},');
+            originFavorite.replaceAll(originFavorite, '$songId,');
         Map<dynamic, dynamic> userMap =
             snapshot.snapshot.value as Map<dynamic, dynamic>;
         await ref
@@ -360,7 +416,7 @@ class _ControlButtonsState extends State<ControlButtons> {
         print('Không tìm thấy user với id ${currentUser!.uid}');
       }
     } catch (error) {
-      print('Lỗi: ${error}');
+      print('Lỗi: $error');
     }
   }
 
@@ -387,7 +443,7 @@ class _ControlButtonsState extends State<ControlButtons> {
               : const Icon(Icons.favorite_border),
         ),
 
-        SizedBox(
+        const SizedBox(
           width: 20.0,
         ),
 
@@ -468,7 +524,7 @@ class _ControlButtonsState extends State<ControlButtons> {
           ),
         ),
 
-        SizedBox(
+        const SizedBox(
           width: 20.0,
         ),
 
@@ -485,7 +541,7 @@ class _ControlButtonsState extends State<ControlButtons> {
             }
           },
           tooltip: 'Thêm',
-          icon: Icon(Icons.more_horiz),
+          icon: const Icon(Icons.more_horiz),
           itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
             const PopupMenuItem<String>(
               value: 'showBottomSheet',
@@ -504,7 +560,7 @@ void _showBottomSheet(BuildContext context, SongInfo songInfo) {
       DatabaseReference ref =
           FirebaseDatabase.instance.ref().child('app/users');
       final snapshot =
-          await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
       if (snapshot.snapshot.exists) {
         Map<dynamic, dynamic> userMap =
             snapshot.snapshot.value as Map<dynamic, dynamic>;
@@ -516,14 +572,14 @@ void _showBottomSheet(BuildContext context, SongInfo songInfo) {
             userMap.values.firstOrNull as Map<dynamic, dynamic>;
         for (var item in valueMap.entries) {
           if (item.key == 'playlist') {
-            print(item.value.toString());
+            // print(item.value.toString());
             var playlists = item.value as Map<dynamic, dynamic>;
             List<MapEntry<dynamic, dynamic>> returnResult =
                 playlists.entries.toList();
-            for (var list in playlists.entries) {
-              print(list.key);
-              print(list.value);
-            }
+            // for (var list in playlists.entries) {
+            //   print(list.key);
+            //   print(list.value);
+            // }
             return returnResult;
           }
         }
@@ -539,7 +595,7 @@ void _showBottomSheet(BuildContext context, SongInfo songInfo) {
     context: context,
     isScrollControlled: true,
     builder: (BuildContext context) {
-      return Container(
+      return SizedBox(
         height: 450.0,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -569,7 +625,7 @@ void _showBottomSheet(BuildContext context, SongInfo songInfo) {
                       Navigator.of(context).pop();
                       showNestedModal(context, songInfo);
                     },
-                    icon: Icon(Icons.add_circle_outline),
+                    icon: const Icon(Icons.add_circle_outline),
                     iconSize: 24.0,
                   )
                 ],
@@ -579,16 +635,17 @@ void _showBottomSheet(BuildContext context, SongInfo songInfo) {
                 future: getAllPlayList(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return CircularProgressIndicator(); // hoặc widget loading khác
+                    return const CircularProgressIndicator(); // hoặc widget loading khác
                   } else if (snapshot.hasError) {
                     return Text('Error: ${snapshot.error}');
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Text('No data available');
+                    return const Text('No data available');
                   } else {
                     // Nếu dữ liệu có sẵn, hiển thị GridView
                     List<MapEntry> playlists = snapshot.data!;
                     return GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         crossAxisSpacing: 8.0,
                         mainAxisSpacing: 8.0,
@@ -614,13 +671,13 @@ class PlayListCard extends StatelessWidget {
   final MapEntry<dynamic, dynamic> list;
   final SongInfo songInfo;
 
-  PlayListCard(this.list, this.songInfo, {super.key});
+  const PlayListCard(this.list, this.songInfo, {super.key});
 
   Future<String> getImageUrl() async {
     var id = list.value.toString().split(',')[0];
 
     final songRef = FirebaseDatabase.instance.ref();
-    final songSnapshot = await songRef.child('app/songInfos/${id}').get();
+    final songSnapshot = await songRef.child('app/songInfos/$id').get();
     if (songSnapshot.exists) {
       return songSnapshot.child('imageUrl').value.toString();
     } else {
@@ -636,12 +693,12 @@ class PlayListCard extends StatelessWidget {
           FirebaseDatabase.instance.ref().child('app/songInfos');
       final songSnapshot = await songRef
           .orderByChild('songUrl')
-          .equalTo('${songInfo.songUrl}')
+          .equalTo(songInfo.songUrl)
           .once();
 
       Map<dynamic, dynamic> songMap =
           songSnapshot.snapshot.value as Map<dynamic, dynamic>;
-      print(songMap.keys.first);
+      // print(songMap.keys.first);
       return songMap.keys.first;
     } catch (error) {
       return ('Lỗi: $error');
@@ -653,23 +710,23 @@ class PlayListCard extends StatelessWidget {
       DatabaseReference ref =
           FirebaseDatabase.instance.ref().child('app/users');
       final snapshot =
-          await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
-      print(
-          snapshot.snapshot.children.first.child('playlist/${list.key}').value);
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
+      // print(
+      //     snapshot.snapshot.children.first.child('playlist/${list.key}').value);
       String songId = await getSongId();
       if (snapshot.snapshot.exists) {
         Map<dynamic, dynamic> userMap =
             snapshot.snapshot.value as Map<dynamic, dynamic>;
         await ref.update({
           "${userMap.keys.first}/playlist/${list.key}":
-              "${songId},${snapshot.snapshot.children.first.child('playlist/${list.key}').value}"
+              "$songId,${snapshot.snapshot.children.first.child('playlist/${list.key}').value}"
         });
         print('Đã cập nhật favourite cho user ${currentUser!.uid}');
       } else {
         print('Không tìm thấy user với id ${currentUser!.uid}');
       }
     } catch (error) {
-      print('Lỗi: ${error}');
+      print('Lỗi: $error');
     }
   }
 
@@ -707,7 +764,7 @@ class PlayListCard extends StatelessWidget {
           );
         } else if (snapshot.connectionState == ConnectionState.waiting) {
           // Trạng thái đang đợi
-          return CircularProgressIndicator();
+          return const CircularProgressIndicator();
         } else {
           // Trạng thái khác (lỗi hoặc null)
           return Container(); // hoặc có thể thay thế bằng một Widget thông báo lỗi
@@ -726,12 +783,12 @@ void showNestedModal(BuildContext context, SongInfo songInfo) {
           FirebaseDatabase.instance.ref().child('app/songInfos');
       final songSnapshot = await songRef
           .orderByChild('songUrl')
-          .equalTo('${songInfo.songUrl}')
+          .equalTo(songInfo.songUrl)
           .once();
 
       Map<dynamic, dynamic> songMap =
           songSnapshot.snapshot.value as Map<dynamic, dynamic>;
-      print(songMap.keys.first);
+      // print(songMap.keys.first);
       return songMap.keys.first;
     } catch (error) {
       return ('Lỗi: $error');
@@ -743,7 +800,7 @@ void showNestedModal(BuildContext context, SongInfo songInfo) {
       DatabaseReference ref =
           FirebaseDatabase.instance.ref().child('app/users');
       final snapshot =
-          await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
       String songId = await getSongId();
       if (snapshot.snapshot.exists) {
         Map<dynamic, dynamic> userMap =
@@ -755,7 +812,7 @@ void showNestedModal(BuildContext context, SongInfo songInfo) {
         print('Không tìm thấy user với id ${currentUser!.uid}');
       }
     } catch (error) {
-      print('Lỗi: ${error}');
+      print('Lỗi: $error');
     }
   }
 
@@ -769,7 +826,7 @@ void showNestedModal(BuildContext context, SongInfo songInfo) {
               left: 20.0,
               right: 20.0,
               top: 10.0),
-          child: Container(
+          child: SizedBox(
             height: 300.0,
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -797,7 +854,7 @@ void showNestedModal(BuildContext context, SongInfo songInfo) {
                       onPressed: () {
                         createPlaylist();
                       },
-                      icon: Icon(Icons.add_circle),
+                      icon: const Icon(Icons.add_circle),
                       iconSize: 24.0,
                     )
                   ],
@@ -809,7 +866,7 @@ void showNestedModal(BuildContext context, SongInfo songInfo) {
                       songInfo.imageUrl,
                       height: 150,
                     ),
-                    Container(
+                    SizedBox(
                       width: 200.0,
                       child: TextField(
                         controller: playlistName,

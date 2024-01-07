@@ -6,6 +6,6 @@ class PlayingSong {
   List<SongInfo> listSong;
 
   PlayingSong(this.isAppPlaying, {SongInfo? songInfo, List<SongInfo>? listSong})
-      : songInfo = songInfo ?? SongInfo('', '', '', ''), // Sử dụng null-aware operator
+      : songInfo = songInfo ?? SongInfo('', '', '', '', -1, -1, ''), // Sử dụng null-aware operator
         listSong = listSong ?? [];
 }

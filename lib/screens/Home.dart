@@ -6,6 +6,7 @@ import 'package:flutter_music_clouds/models/SongInfos.dart';
 import 'package:flutter_music_clouds/models/commonJustAudio.dart';
 import 'package:flutter_music_clouds/screens/PlaylistPlayer.dart';
 import 'package:flutter_music_clouds/screens/Songs.dart';
+import 'package:flutter_music_clouds/widgets/SongGenre.dart';
 import 'package:flutter_music_clouds/widgets/inheritedWidget.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
@@ -23,6 +24,7 @@ class _HomeState extends State<Home> {
   late List<SongInfo> playList = [];
   late List<SongInfo> recentPlayed = [];
   late List<SongInfo> songAsType = [];
+  late List<String> favoriteTypes = [];
   // late SongInfo playingSong = {} as SongInfo;
 
   @override
@@ -32,6 +34,7 @@ class _HomeState extends State<Home> {
     getRecentPlayedSongs();
     getPlaylist();
     getSongsAsType();
+    getFavoriteTypes();
     // getData();
 
     DatabaseReference songInfosRef =
@@ -45,7 +48,11 @@ class _HomeState extends State<Home> {
         String imageUrl = dataSnapshot.child('imageUrl').value.toString();
         String artistName = dataSnapshot.child('artistName').value.toString();
         String songUrl = dataSnapshot.child('songUrl').value.toString();
-        final newSong = SongInfo(songName, imageUrl, songUrl, artistName);
+        int like = dataSnapshot.child('like').value as int;
+        int listened = dataSnapshot.child('listened').value as int;
+        String type = dataSnapshot.child('type').value.toString();
+        final newSong = SongInfo(
+            songName, imageUrl, songUrl, artistName, like, listened, type);
 
         tSongs.add(newSong);
       }
@@ -62,7 +69,7 @@ class _HomeState extends State<Home> {
     DatabaseReference userRef =
         FirebaseDatabase.instance.ref().child('app/users');
     final snapshot =
-        await userRef.orderByChild('id').equalTo('${currentUser!.uid}').once();
+        await userRef.orderByChild('id').equalTo(currentUser!.uid).once();
     Map<dynamic, dynamic> userMap =
         snapshot.snapshot.value as Map<dynamic, dynamic>;
     DatabaseReference userListened = FirebaseDatabase.instance
@@ -81,10 +88,46 @@ class _HomeState extends State<Home> {
     super.dispose();
   }
 
+  Future getFavoriteTypes() async {
+    DatabaseReference ref = FirebaseDatabase.instance.ref().child('app/users');
+    final snapshot =
+        await ref.orderByChild('id').equalTo(currentUser!.uid).once();
+    final favSongIds = snapshot.snapshot.children.first
+        .child('playlist/favorite')
+        .value
+        .toString()
+        .split(',')
+        .toSet()
+        .toList();
+    final List<String> favTypes = [];
+    for (String id in favSongIds) {
+      if (id != 'null' && id != '') {
+        final songRef = FirebaseDatabase.instance.ref();
+        final songSnapshot = await songRef.child('app/songInfos/$id').get();
+        if (songSnapshot.exists) {
+          final songType =
+              songSnapshot.child('type').value.toString().toLowerCase();
+          if (!favTypes.contains(songType)) {
+            favTypes.add(songType);
+          }
+        } else {
+          print('no snapshot');
+        }
+      }
+    }
+    if (mounted) {
+      print('favorite types: $favTypes');
+      setState(() {
+        favoriteTypes = favTypes;
+      });
+    }
+    return favTypes;
+  }
+
   Future getRecentPlayedSongs() async {
     DatabaseReference ref = FirebaseDatabase.instance.ref().child('app/users');
     final snapshot =
-        await ref.orderByChild('id').equalTo('${currentUser!.uid}').once();
+        await ref.orderByChild('id').equalTo(currentUser!.uid).once();
     // print(snapshot.snapshot.children.first
     //     .child('recentPlayed')
     //     .value
@@ -101,21 +144,27 @@ class _HomeState extends State<Home> {
     final List<SongInfo> recentSongs = [];
     for (String id in recentSongIds) {
       final songRef = FirebaseDatabase.instance.ref();
-      final songSnapshot = await songRef.child('app/songInfos/${id}').get();
+      final songSnapshot = await songRef.child('app/songInfos/$id').get();
       if (songSnapshot.exists) {
         String songName = songSnapshot.child('songName').value.toString();
         String imageUrl = songSnapshot.child('imageUrl').value.toString();
         String artistName = songSnapshot.child('artistName').value.toString();
         String songUrl = songSnapshot.child('songUrl').value.toString();
-        final newSong = SongInfo(songName, imageUrl, songUrl, artistName);
+        int like = songSnapshot.child('like').value as int;
+        int listened = songSnapshot.child('listened').value as int;
+        String type = songSnapshot.child('type').value.toString();
+        final newSong = SongInfo(
+            songName, imageUrl, songUrl, artistName, like, listened, type);
         recentSongs.add(newSong);
       } else {
         print('no snapshot');
       }
     }
-    setState(() {
-      recentPlayed = recentSongs;
-    });
+    if (mounted) {
+      setState(() {
+        recentPlayed = recentSongs;
+      });
+    }
 
     return recentSongs;
   }
@@ -131,14 +180,20 @@ class _HomeState extends State<Home> {
         String imageUrl = dataSnapshot.child('imageUrl').value.toString();
         String artistName = dataSnapshot.child('artistName').value.toString();
         String songUrl = dataSnapshot.child('songUrl').value.toString();
-        final newSong = SongInfo(songName, imageUrl, songUrl, artistName);
+        int like = dataSnapshot.child('like').value as int;
+        int listened = dataSnapshot.child('listened').value as int;
+        String type = dataSnapshot.child('type').value.toString();
+        final newSong = SongInfo(
+            songName, imageUrl, songUrl, artistName, like, listened, type);
 
         tSongs.add(newSong);
       }
-      setState(() {
-        alldata = snapshot.value;
-        songs = tSongs;
-      });
+      if (mounted) {
+        setState(() {
+          alldata = snapshot.value;
+          songs = tSongs;
+        });
+      }
     } else {
       print('No data available.');
     }
@@ -157,13 +212,19 @@ class _HomeState extends State<Home> {
         String imageUrl = dataSnapshot.child('imageUrl').value.toString();
         String artistName = dataSnapshot.child('artistName').value.toString();
         String songUrl = dataSnapshot.child('songUrl').value.toString();
-        final newSong = SongInfo(songName, imageUrl, songUrl, artistName);
+        int like = dataSnapshot.child('like').value as int;
+        int listened = dataSnapshot.child('listened').value as int;
+        String type = dataSnapshot.child('type').value.toString();
+        final newSong = SongInfo(
+            songName, imageUrl, songUrl, artistName, like, listened, type);
         tSongs.add(newSong);
       }
-      setState(() {
-        print(tSongs[0].imageUrl);
-        songAsType = tSongs;
-      });
+      if (mounted) {
+        setState(() {
+          print(tSongs[0].imageUrl);
+          songAsType = tSongs;
+        });
+      }
     } else {
       print('No data available.');
     }
@@ -183,13 +244,19 @@ class _HomeState extends State<Home> {
         String imageUrl = dataSnapshot.child('imageUrl').value.toString();
         String artistName = dataSnapshot.child('artistName').value.toString();
         String songUrl = dataSnapshot.child('songUrl').value.toString();
-        final newSong = SongInfo(songName, imageUrl, songUrl, artistName);
+        int like = dataSnapshot.child('like').value as int;
+        int listened = dataSnapshot.child('listened').value as int;
+        String type = dataSnapshot.child('type').value.toString();
+        final newSong = SongInfo(
+            songName, imageUrl, songUrl, artistName, like, listened, type);
         tSongs.add(newSong);
       }
-      setState(() {
-        print(tSongs[0].imageUrl);
-        playList = tSongs;
-      });
+      if (mounted) {
+        setState(() {
+          print(tSongs[0].imageUrl);
+          playList = tSongs;
+        });
+      }
     } else {
       print('No data available.');
     }
@@ -205,10 +272,10 @@ class _HomeState extends State<Home> {
   Widget _buildPlaybackStatusWidget(fatherContext) {
     final myInheritedWidget = MyInheritedWidget.of(context);
     if (myInheritedWidget == null) {
-      return Text('no inheritedwidget');
+      return const Text('no inheritedwidget');
     }
 
-    Stream<PositionData> _positionDataStream =
+    Stream<PositionData> positionDataStream =
         Rx.combineLatest3<Duration, Duration, Duration?, PositionData>(
             myInheritedWidget.player.positionStream,
             myInheritedWidget.player.bufferedPositionStream,
@@ -265,7 +332,7 @@ class _HomeState extends State<Home> {
                 ),
                 // Name
                 if (playingSong.songInfo != null &&
-                    playingSong.listSong.length == 0)
+                    playingSong.listSong.isEmpty)
                   InkWell(
                       onTap: () => Navigator.push(context,
                               MaterialPageRoute(builder: (context) {
@@ -291,7 +358,7 @@ class _HomeState extends State<Home> {
                         ],
                       )),
 
-                if (playingSong.listSong.length > 0)
+                if (playingSong.listSong.isNotEmpty)
                   InkWell(
                       onTap: () => Navigator.push(context,
                               MaterialPageRoute(builder: (context) {
@@ -306,7 +373,8 @@ class _HomeState extends State<Home> {
                             return MyInheritedWidget(
                               isAppPlaying: myInheritedWidget.isAppPlaying,
                               player: myInheritedWidget.player,
-                              child: PlaylistPlayer(myInheritedWidget.player, false, playingSong.listSong),
+                              child: PlaylistPlayer(myInheritedWidget.player,
+                                  false, playingSong.listSong),
                             );
                           })),
                       child: Column(
@@ -317,7 +385,7 @@ class _HomeState extends State<Home> {
                       )),
 
                 IconButton(
-                  icon: Icon(Icons.favorite_outline),
+                  icon: const Icon(Icons.favorite_outline),
                   onPressed: () {
                     // Xử lý sự kiện nhấn nút pause
                     myInheritedWidget.player.pause();
@@ -328,7 +396,7 @@ class _HomeState extends State<Home> {
             ),
           ),
           StreamBuilder<PositionData>(
-            stream: _positionDataStream,
+            stream: positionDataStream,
             builder: (context, snapshot) {
               final positionData = snapshot.data;
               return MiniSeekBar(
@@ -350,7 +418,7 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext fatherContext) {
     final myInheritedWidget = MyInheritedWidget.of(fatherContext);
     if (myInheritedWidget == null) {
-      return Text('no inheritedwidget');
+      return const Text('no inheritedwidget');
     }
 
     return MyInheritedWidget(
@@ -364,15 +432,52 @@ class _HomeState extends State<Home> {
                   child: SingleChildScrollView(
                 child: Column(
                   children: <Widget>[
-                    // recented play
+                    // Có thể bạn cũng thích
+
                     Container(
-                      height: 270,
-                      decoration:
-                          BoxDecoration(color: Color.fromARGB(255, 31, 29, 29)),
+                      height: 250,
+                      decoration: const BoxDecoration(
+                          color: Color.fromARGB(255, 31, 29, 29)),
                       child: Column(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(10.0),
+                            child: const Text(
+                              'Nhạc bạn thích',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.left,
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: favoriteTypes.length,
+                              itemBuilder: (context, index) {
+                                return MusicGenreWidget(
+                                    songType: favoriteTypes[index]);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Container(
+                      height: 30.0,
+                    ),
+
+                    // recented play
+                    Container(
+                      height: 270,
+                      decoration: const BoxDecoration(
+                          color: Color.fromARGB(255, 31, 29, 29)),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(5.0),
                             child: const Text(
                               'Nghe gần đây',
                               style: TextStyle(
@@ -407,14 +512,18 @@ class _HomeState extends State<Home> {
                                         child: Songspage(recentPlayed[index],
                                             true, myInheritedWidget.player),
                                       );
-                                    })).then((value) => setState(() {
-                                          playingSong = new PlayingSong(true,
+                                    })).then((value) {
+                                      if (mounted) {
+                                        setState(() {
+                                          playingSong = PlayingSong(true,
                                               songInfo: recentPlayed[0]);
-                                        })),
+                                        });
+                                      }
+                                    }),
                                     child: Card(
-                                        elevation: 10.0,
+                                        elevation: 5.0,
                                         // Padding áp dụng trực tiếp cho Card
-                                        margin: const EdgeInsets.all(10),
+                                        margin: const EdgeInsets.all(5),
                                         child: Column(
                                           children: [
                                             Image.network(
@@ -427,12 +536,12 @@ class _HomeState extends State<Home> {
                                               title: Text(
                                                 recentPlayed[index].songName,
                                                 style: const TextStyle(
-                                                    fontSize: 12.0),
+                                                    fontSize: 14.0),
                                               ),
                                               subtitle: Text(
                                                 recentPlayed[index].artistName,
                                                 style: const TextStyle(
-                                                    fontSize: 8.0),
+                                                    fontSize: 10.0),
                                               ),
                                             )
                                           ],
@@ -653,7 +762,7 @@ class _HomeState extends State<Home> {
                           } else {
                             return Container(
                               height: 270,
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                   color: Color.fromARGB(255, 31, 29, 29)),
                               child: Column(
                                 children: [
@@ -700,14 +809,18 @@ class _HomeState extends State<Home> {
                                                     true,
                                                     myInheritedWidget.player),
                                               );
-                                            })).then((value) => setState(() {
-                                                  playingSong = new PlayingSong(
+                                            })).then((value) {
+                                              if (mounted) {
+                                                setState(() {
+                                                  playingSong = PlayingSong(
                                                       true,
                                                       songInfo: songs[
                                                           songs.length -
                                                               1 -
                                                               index]);
-                                                })),
+                                                });
+                                              }
+                                            }),
                                             child: Card(
                                                 elevation: 10.0,
                                                 // Padding áp dụng trực tiếp cho Card
@@ -805,17 +918,22 @@ class _HomeState extends State<Home> {
                                                 //     songs[songs.length - 1 - index],
                                                 //     myInheritedWidget.player),
                                                 child: PlaylistPlayer(
-                                                    myInheritedWidget.player, true,
+                                                    myInheritedWidget.player,
+                                                    true,
                                                     playList),
                                               );
-                                            })).then((value) => setState(() {
+                                            })).then((value) {
+                                              if (mounted) {
+                                                setState(() {
                                                   playingSong.isAppPlaying =
                                                       true;
                                                   playingSong.songInfo =
                                                       playList[0];
                                                   playingSong.listSong =
                                                       playList;
-                                                })),
+                                                });
+                                              }
+                                            }),
                                             child: Card(
                                                 elevation: 10.0,
                                                 // Padding áp dụng trực tiếp cho Card
@@ -863,7 +981,7 @@ class _HomeState extends State<Home> {
                       width: double.maxFinite,
                       decoration: BoxDecoration(
                           color: Colors.deepOrange[200],
-                          borderRadius: BorderRadius.vertical(
+                          borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(20.0))),
                     ),
                   ],

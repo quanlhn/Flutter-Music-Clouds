@@ -8,9 +8,10 @@ import 'package:get/get.dart';
 class More extends StatelessWidget {
   const More({super.key});
 
+  @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(2, 10, 2, 10),
+      padding: const EdgeInsets.fromLTRB(2, 10, 2, 10),
       child: Center(
         child: Column(
           children: [
@@ -26,10 +27,10 @@ class More extends StatelessWidget {
               child: Container(
                 width: MediaQuery.of(context).size.width - 25.0,
                 height: 50.0,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Color.fromARGB(255, 31, 29, 29)
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Các bài đã thích'),
@@ -38,7 +39,7 @@ class More extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: 8.0,),
+            const SizedBox(height: 8.0,),
             
             // playlist
             GestureDetector(
@@ -48,10 +49,10 @@ class More extends StatelessWidget {
               child: Container(
                 width: MediaQuery.of(context).size.width - 25.0,
                 height: 50.0,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Color.fromARGB(255, 31, 29, 29)
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Playlist & Albums'),
@@ -60,7 +61,7 @@ class More extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: 8.0,),
+            const SizedBox(height: 8.0,),
             
             // following
             GestureDetector(
@@ -70,10 +71,10 @@ class More extends StatelessWidget {
               child: Container(
                 width: MediaQuery.of(context).size.width - 25.0,
                 height: 50.0,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Color.fromARGB(255, 31, 29, 29)
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Following'),
@@ -82,7 +83,7 @@ class More extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: 8.0,),
+            const SizedBox(height: 8.0,),
             
             // stations
             GestureDetector(
@@ -95,10 +96,10 @@ class More extends StatelessWidget {
               child: Container(
                 width: MediaQuery.of(context).size.width - 25.0,
                 height: 50.0,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Color.fromARGB(255, 31, 29, 29)
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Đăng xuất'),

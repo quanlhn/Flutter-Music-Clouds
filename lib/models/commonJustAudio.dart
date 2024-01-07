@@ -153,7 +153,7 @@ class MiniSeekBarState extends State<MiniSeekBar> {
         SliderTheme(
           data: _sliderThemeData.copyWith(
             thumbColor: Colors.transparent,
-            thumbShape: RoundSliderThumbShape(enabledThumbRadius: 0.0),
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0.0),
             activeTrackColor: Colors.blue.shade100,
             inactiveTrackColor: Colors.grey.shade300,
             overlayShape: SliderComponentShape.noOverlay,
@@ -187,7 +187,7 @@ class MiniSeekBarState extends State<MiniSeekBar> {
             inactiveTrackColor: Colors.transparent,
             activeTrackColor: Theme.of(context).colorScheme.onSecondary,
             thumbColor: Colors.transparent,
-            thumbShape: RoundSliderThumbShape(enabledThumbRadius: 0.0),
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0.0),
             overlayShape: SliderComponentShape.noOverlay,
           ),
           child: Slider(

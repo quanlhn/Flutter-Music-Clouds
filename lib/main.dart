@@ -1,14 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_music_clouds/models/styles.dart';
-import 'package:flutter_music_clouds/screens/Home.dart';
-import 'package:flutter_music_clouds/screens/Library.dart';
-import 'package:flutter_music_clouds/screens/Search.dart';
-import 'package:flutter_music_clouds/screens/Upload.dart';
 import 'package:flutter_music_clouds/screens/splash_screen.dart';
 import 'package:flutter_music_clouds/widgets/colorScheme.dart';
-import 'package:flutter_music_clouds/widgets/inheritedWidget.dart';
-import 'package:just_audio/just_audio.dart';
 import 'firebase_options.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 

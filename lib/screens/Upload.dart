@@ -73,8 +73,11 @@ class _UploadState extends State<Upload> {
       "imageUrl": imageUrlDownload,
       "songUrl": songUrlDownload,
       "artistName": artistName.text,
+      "lowerCaseArtistName": artistName.text.toLowerCase(),
       "songName": songName.text,
+      "lowerCaseSongName": songName.text.toLowerCase(),
       "type": songType.text,
+      "lowerCaseType": songType.text.toLowerCase(),
       'userId': currentUser!.uid,
       "like": 0,
       "listened": 0

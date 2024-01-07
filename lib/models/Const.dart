@@ -5,4 +5,4 @@ import 'package:flutter_music_clouds/models/PlayingSong.dart';
 FirebaseAuth auth = FirebaseAuth.instance;
 FirebaseFirestore firestore = FirebaseFirestore.instance;
 User? currentUser = auth.currentUser;
-PlayingSong playingSong = new PlayingSong(false);
+PlayingSong playingSong = PlayingSong(false);

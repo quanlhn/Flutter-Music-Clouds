@@ -1,10 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 // import 'package:firebase_tutorial/consts/consts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_music_clouds/models/Const.dart';
-import 'package:flutter_music_clouds/models/strings.dart';
 import 'package:get/get.dart';
 import 'package:velocity_x/velocity_x.dart';
 

@@ -44,7 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.onSecondary,
-      body: Center(child: Text('Welcome to Music Clouds')),
+      body: const Center(child: Text('Welcome to Music Clouds')),
     );
   }
 }

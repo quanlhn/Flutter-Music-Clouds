@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_music_clouds/screens/Home.dart';
-import 'package:flutter_music_clouds/screens/Library.dart';
+import 'package:flutter_music_clouds/screens/library/Library.dart';
 import 'package:flutter_music_clouds/screens/More.dart';
 import 'package:flutter_music_clouds/screens/Search.dart';
 import 'package:flutter_music_clouds/screens/Upload.dart';
@@ -33,9 +33,9 @@ class _MainAppState extends State<MainApp> {
   Widget _buildPlaybackStatusWidget(context) {
     final myInheritedWidget = MyInheritedWidget.of(context);
     if (myInheritedWidget == null) {
-      return Text('no inheritedwidget');
+      return const Text('no inheritedwidget');
     }
-    return (CustomBottomAppBar());
+    return (const CustomBottomAppBar());
   }
 
   // This widget is the root of your application.
@@ -116,6 +116,8 @@ class _MainAppState extends State<MainApp> {
 }
 
 class CustomBottomAppBar extends StatelessWidget {
+  const CustomBottomAppBar({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -127,7 +129,7 @@ class CustomBottomAppBar extends StatelessWidget {
         children: [
           // Thêm các biểu tượng hoặc thông tin khác ở đây (ví dụ: tên bài hát, nghệ sĩ)
           IconButton(
-            icon: Icon(Icons.play_arrow),
+            icon: const Icon(Icons.play_arrow),
             onPressed: () {
               // Xử lý sự kiện nhấn nút play
             },
@@ -139,7 +141,7 @@ class CustomBottomAppBar extends StatelessWidget {
             ],
           ),
           IconButton(
-            icon: Icon(Icons.pause),
+            icon: const Icon(Icons.pause),
             onPressed: () {
               // Xử lý sự kiện nhấn nút pause
             },
