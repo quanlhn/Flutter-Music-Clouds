@@ -5,16 +5,16 @@ import 'package:flutter_music_clouds/screens/PlaylistPlayer.dart';
 import 'package:flutter_music_clouds/widgets/inheritedWidget.dart';
 import 'package:firebase_database/firebase_database.dart';
 
-class MusicGenreWidget extends StatefulWidget {
-  final String songType;
+class ArtistWidget extends StatefulWidget {
+  final String artist;
 
-  MusicGenreWidget({required this.songType});
+  ArtistWidget({required this.artist});
 
   @override
-  _MusicGenreWidgetState createState() => _MusicGenreWidgetState();
+  _ArtistWidgetState createState() => _ArtistWidgetState();
 }
 
-class _MusicGenreWidgetState extends State<MusicGenreWidget> {
+class _ArtistWidgetState extends State<ArtistWidget> {
   @override
   void initState() {
     // TODO: implement initState
@@ -32,12 +32,12 @@ class _MusicGenreWidgetState extends State<MusicGenreWidget> {
     // Thực hiện logic để lấy thông tin từ Firebase Realtime Database
     // Đặc biệt là ảnh đại diện của bài hát đầu tiên và tên thể loại
     // Cập nhật giá trị của genreImageUrl và genreName
-    // print(widget.songType);
+    // print(widget.artist);
     final searchSnapshot = await databaseReference
         .child('app/songInfos')
-        .orderByChild('lowerCaseType')
-        .startAt(widget.songType.toLowerCase())
-        .endAt('${widget.songType.toLowerCase()}\uf8ff')
+        .orderByChild('lowerCaseArtistName')
+        .startAt(widget.artist.toLowerCase())
+        .endAt('${widget.artist.toLowerCase()}\uf8ff')
         .get();
     if (searchSnapshot.exists) {
       final List<SongInfo> tSongs = [];
@@ -98,17 +98,15 @@ class _MusicGenreWidgetState extends State<MusicGenreWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            ClipOval(
-              child: Image.network(
-                listSong.isNotEmpty ? listSong[0].imageUrl : genreImageUrl, // Đường dẫn URL của ảnh
-                width: 120, // Độ rộng của ảnh
-                height: 120, // Độ cao của ảnh
-                fit: BoxFit.cover,
-              ),
+            Image.network(
+              listSong.isNotEmpty ? listSong[0].imageUrl : genreImageUrl, // Đường dẫn URL của ảnh
+              width: 125, // Độ rộng của ảnh
+              height: 125, // Độ cao của ảnh
+              fit: BoxFit.cover,
             ),
             SizedBox(height: 10),
             Text(
-              widget.songType.toUpperCase(),
+              widget.artist.toUpperCase(),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,

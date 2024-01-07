@@ -10,6 +10,7 @@ import 'package:flutter_music_clouds/widgets/inheritedWidget.dart';
 // import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:velocity_x/velocity_x.dart';
 
 enum SampleItem { itemOne, itemTwo, itemThree }
 
@@ -667,6 +668,8 @@ void _showBottomSheet(BuildContext context, SongInfo songInfo) {
   );
 }
 
+
+
 class PlayListCard extends StatelessWidget {
   final MapEntry<dynamic, dynamic> list;
   final SongInfo songInfo;
@@ -742,6 +745,9 @@ class PlayListCard extends StatelessWidget {
           return GestureDetector(
             onTap: () {
               addToAlbum();
+              VxToast.show(context,
+                msg: "Đã thêm vào album");
+              Navigator.of(context).pop();
             },
             child: Container(
               child: Card(
@@ -853,6 +859,9 @@ void showNestedModal(BuildContext context, SongInfo songInfo) {
                     IconButton(
                       onPressed: () {
                         createPlaylist();
+                        VxToast.show(context,
+                          msg: "Tạo album mới thành công");
+                        Navigator.of(context).pop();
                       },
                       icon: const Icon(Icons.add_circle),
                       iconSize: 24.0,

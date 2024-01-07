@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_music_clouds/models/Const.dart';
 import 'package:flutter_music_clouds/models/PlayingSong.dart';
 import 'package:flutter_music_clouds/models/SongInfos.dart';
+import 'package:flutter_music_clouds/screens/Songs.dart';
 import 'package:flutter_music_clouds/widgets/colorScheme.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter_music_clouds/models/commonJustAudio.dart';
@@ -17,7 +18,7 @@ class PlaylistPlayer extends StatefulWidget {
   List<SongInfo> playlistInfo;
   bool changeList;
 
-  PlaylistPlayer(this._player, this.changeList , this.playlistInfo, {super.key});
+  PlaylistPlayer(this._player, this.changeList, this.playlistInfo, {super.key});
 
   @override
   State<PlaylistPlayer> createState() => _PlaylistPlayerState();
@@ -25,6 +26,7 @@ class PlaylistPlayer extends StatefulWidget {
 
 class _PlaylistPlayerState extends State<PlaylistPlayer>
     with WidgetsBindingObserver {
+  bool isFavorite = false;
   @override
   void initState() {
     super.initState();
@@ -86,6 +88,102 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
         }
       });
       updateUser(0);
+      print(widget._player.currentIndex);
+      checkSongFavorite(widget._player.currentIndex).then((value) => {
+            setState(() {
+              isFavorite = value;
+            })
+          });
+    }
+  }
+
+  Future<String> getSongId(index) async {
+    try {
+      DatabaseReference songRef =
+          FirebaseDatabase.instance.ref().child('app/songInfos');
+      final songSnapshot = await songRef
+          .orderByChild('songUrl')
+          .equalTo(widget.playlistInfo[index].songUrl)
+          .once();
+
+      Map<dynamic, dynamic> songMap =
+          songSnapshot.snapshot.value as Map<dynamic, dynamic>;
+      // print(songMap.keys.first);
+      return songMap.keys.first;
+    } catch (error) {
+      return ('Lỗi: $error');
+    }
+  }
+
+  Future<bool> checkSongFavorite(index) async {
+    try {
+      DatabaseReference ref =
+          FirebaseDatabase.instance.ref().child('app/users');
+      final snapshot =
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
+      String favoriteSongs = (snapshot.snapshot.children.first
+          .child('playlist/favorite')
+          .value) as String;
+      String songId = await getSongId(index);
+      if (favoriteSongs.contains(songId)) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      print('Lỗi: $error');
+      return false;
+    }
+  }
+
+  void addToFavorite(index) async {
+    try {
+      DatabaseReference ref =
+          FirebaseDatabase.instance.ref().child('app/users');
+      final snapshot =
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
+      // print(snapshot.snapshot.children.first.child('playlist/favorite').value);
+      String songId = await getSongId(index);
+      if (snapshot.snapshot.exists) {
+        Map<dynamic, dynamic> userMap =
+            snapshot.snapshot.value as Map<dynamic, dynamic>;
+        await ref.update({
+          "${userMap.keys.first}/playlist/favorite":
+              "$songId,${snapshot.snapshot.children.first.child('playlist/favorite').value}"
+        });
+        print('Đã cập nhật favourite cho user ${currentUser!.uid}');
+      } else {
+        print('Không tìm thấy user với id ${currentUser!.uid}');
+      }
+    } catch (error) {
+      print('Lỗi: $error');
+    }
+  }
+
+  void removeFromFavorite(index) async {
+    try {
+      DatabaseReference ref =
+          FirebaseDatabase.instance.ref().child('app/users');
+      final snapshot =
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
+      // print(snapshot.snapshot.children.first.child('playlist/favorite').value);
+      if (snapshot.snapshot.exists) {
+        String songId = await getSongId(index);
+        String originFavorite = snapshot.snapshot.children.first
+            .child('playlist/favorite')
+            .value as String;
+        String newFavorite =
+            originFavorite.replaceAll(originFavorite, '$songId,');
+        Map<dynamic, dynamic> userMap =
+            snapshot.snapshot.value as Map<dynamic, dynamic>;
+        await ref
+            .update({"${userMap.keys.first}/playlist/favorite": newFavorite});
+        print('Đã cập nhật favourite cho user ${currentUser!.uid}');
+      } else {
+        print('Không tìm thấy user với id ${currentUser!.uid}');
+      }
+    } catch (error) {
+      print('Lỗi: $error');
     }
   }
 
@@ -155,9 +253,16 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
     }
   }
 
-  void getTagForItem(int index) {
+  void getTagForItem(int index) async {
     if (index >= 0 && index < widget.playlistInfo.length) {
       updateUser(index);
+
+      print(widget._player.currentIndex);
+      checkSongFavorite(widget._player.currentIndex).then((value) => {
+            setState(() {
+              isFavorite = value;
+            })
+          });
 
       final audioSource = _playlist.children[index];
       final metadata = (audioSource as UriAudioSource).tag as AudioMetadata;
@@ -167,13 +272,33 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
       print(audioSource.uri.toString());
       setState(() {
         playingSong = PlayingSong(true);
-        playingSong.songInfo = SongInfo(metadata.title, metadata.artwork,
-            audioSource.uri.toString(), metadata.album, metadata.like, metadata.listened, metadata.type);
+        playingSong.songInfo = SongInfo(
+            metadata.title,
+            metadata.artwork,
+            audioSource.uri.toString(),
+            metadata.album,
+            metadata.like,
+            metadata.listened,
+            metadata.type);
         playingSong.listSong = widget.playlistInfo;
       });
     } else {
       print('Index out of bounds.');
     }
+  }
+
+  SongInfo getCurrentSong() {
+    int nonNullIndex = _player.currentIndex ?? 0;
+    final audioSource = _playlist.children[nonNullIndex];
+    final metadata = (audioSource as UriAudioSource).tag as AudioMetadata;
+    return SongInfo(
+      metadata.title,
+      metadata.artwork,
+      audioSource.uri.toString(),
+      metadata.album,
+      metadata.like,
+      metadata.listened,
+      metadata.type);
   }
 
   Stream<PositionData> get _positionDataStream =>
@@ -226,7 +351,45 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
                 ),
               ),
               //Các nút điều hướng
-              ControlButtons(_player),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      if (isFavorite) {
+                        // remove favorite
+                        removeFromFavorite(widget._player.currentIndex);
+                      } else {
+                        // add favorite
+                        addToFavorite(widget._player.currentIndex);
+                      }
+                      setState(() {
+                        isFavorite = !isFavorite;
+                      });
+                    },
+                    icon: isFavorite
+                        ? const Icon(Icons.favorite)
+                        : const Icon(Icons.favorite_border),
+                  ),
+                  ControlButtons(_player),
+                  PopupMenuButton<String>(
+                    onSelected: (String result) {
+                      if (result == 'showBottomSheet') {
+                        // Khi chọn mục trong PopupMenu, hiển thị bottom sheet
+                        _showBottomSheet(context, getCurrentSong());
+                      }
+                    },
+                    tooltip: 'Thêm',
+                    icon: const Icon(Icons.more_horiz),
+                    itemBuilder: (BuildContext context) =>
+                        <PopupMenuEntry<String>>[
+                      const PopupMenuItem<String>(
+                        value: 'showBottomSheet',
+                        child: Text('Show Bottom Sheet'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
 
               // Thanh progress bar
               StreamBuilder<PositionData>(
@@ -377,10 +540,22 @@ class _PlaylistPlayerState extends State<PlaylistPlayer>
   }
 }
 
-class ControlButtons extends StatelessWidget {
+class ControlButtons extends StatefulWidget {
   final AudioPlayer player;
+  const ControlButtons(this.player, {super.key});
 
-  const ControlButtons(this.player, {Key? key}) : super(key: key);
+  @override
+  State<ControlButtons> createState() => _ControlButtonsState();
+}
+
+class _ControlButtonsState extends State<ControlButtons> {
+  late bool _isFavorite;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -396,21 +571,22 @@ class ControlButtons extends StatelessWidget {
               divisions: 10,
               min: 0.0,
               max: 1.0,
-              value: player.volume,
-              stream: player.volumeStream,
-              onChanged: player.setVolume,
+              value: widget.player.volume,
+              stream: widget.player.volumeStream,
+              onChanged: widget.player.setVolume,
             );
           },
         ),
         StreamBuilder<SequenceState?>(
-          stream: player.sequenceStateStream,
+          stream: widget.player.sequenceStateStream,
           builder: (context, snapshot) => IconButton(
             icon: const Icon(Icons.skip_previous),
-            onPressed: player.hasPrevious ? player.seekToPrevious : null,
+            onPressed:
+                widget.player.hasPrevious ? widget.player.seekToPrevious : null,
           ),
         ),
         StreamBuilder<PlayerState>(
-          stream: player.playerStateStream,
+          stream: widget.player.playerStateStream,
           builder: (context, snapshot) {
             final playerState = snapshot.data;
             final processingState = playerState?.processingState;
@@ -427,33 +603,33 @@ class ControlButtons extends StatelessWidget {
               return IconButton(
                 icon: const Icon(Icons.play_arrow),
                 iconSize: 64.0,
-                onPressed: player.play,
+                onPressed: widget.player.play,
               );
             } else if (processingState != ProcessingState.completed) {
               return IconButton(
                 icon: const Icon(Icons.pause),
                 iconSize: 64.0,
-                onPressed: player.pause,
+                onPressed: widget.player.pause,
               );
             } else {
               return IconButton(
                 icon: const Icon(Icons.replay),
                 iconSize: 64.0,
-                onPressed: () => player.seek(Duration.zero,
-                    index: player.effectiveIndices!.first),
+                onPressed: () => widget.player.seek(Duration.zero,
+                    index: widget.player.effectiveIndices!.first),
               );
             }
           },
         ),
         StreamBuilder<SequenceState?>(
-          stream: player.sequenceStateStream,
+          stream: widget.player.sequenceStateStream,
           builder: (context, snapshot) => IconButton(
             icon: const Icon(Icons.skip_next),
-            onPressed: player.hasNext ? player.seekToNext : null,
+            onPressed: widget.player.hasNext ? widget.player.seekToNext : null,
           ),
         ),
         StreamBuilder<double>(
-          stream: player.speedStream,
+          stream: widget.player.speedStream,
           builder: (context, snapshot) => IconButton(
             icon: Text("${snapshot.data?.toStringAsFixed(1)}x",
                 style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -464,9 +640,9 @@ class ControlButtons extends StatelessWidget {
                 divisions: 10,
                 min: 0.5,
                 max: 1.5,
-                value: player.speed,
-                stream: player.speedStream,
-                onChanged: player.setSpeed,
+                value: widget.player.speed,
+                stream: widget.player.speedStream,
+                onChanged: widget.player.setSpeed,
               );
             },
           ),
@@ -482,10 +658,125 @@ class AudioMetadata {
   final String artwork;
   int like;
   int listened;
-  String type;  
-  AudioMetadata({
-    required this.album,
-    required this.title,
-    required this.artwork, required this.like, required this.listened, required this.type
-  });
+  String type;
+  AudioMetadata(
+      {required this.album,
+      required this.title,
+      required this.artwork,
+      required this.like,
+      required this.listened,
+      required this.type});
+}
+
+void _showBottomSheet(BuildContext context, SongInfo songInfo) {
+  Future<List<MapEntry>> getAllPlayList() async {
+    try {
+      DatabaseReference ref =
+          FirebaseDatabase.instance.ref().child('app/users');
+      final snapshot =
+          await ref.orderByChild('id').equalTo(currentUser!.uid).once();
+      if (snapshot.snapshot.exists) {
+        Map<dynamic, dynamic> userMap =
+            snapshot.snapshot.value as Map<dynamic, dynamic>;
+        // for (var item in userMap.values) {
+        //   print(item.toString());
+        //   print(item.runtimeType);
+        // }
+        Map<dynamic, dynamic> valueMap =
+            userMap.values.firstOrNull as Map<dynamic, dynamic>;
+        for (var item in valueMap.entries) {
+          if (item.key == 'playlist') {
+            // print(item.value.toString());
+            var playlists = item.value as Map<dynamic, dynamic>;
+            List<MapEntry<dynamic, dynamic>> returnResult =
+                playlists.entries.toList();
+            // for (var list in playlists.entries) {
+            //   print(list.key);
+            //   print(list.value);
+            // }
+            return returnResult;
+          }
+        }
+      } else {
+        print('Không tìm thấy user với id ${currentUser!.uid}');
+      }
+    } catch (error) {}
+    print('playlist');
+    return [];
+  }
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (BuildContext context) {
+      return SizedBox(
+        height: 450.0,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.grey[300], fontSize: 14.0),
+                    ),
+                  ),
+                  Text(
+                    'Add to playlist',
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 20.0),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      showNestedModal(context, songInfo);
+                    },
+                    icon: const Icon(Icons.add_circle_outline),
+                    iconSize: 24.0,
+                  )
+                ],
+              ),
+              Expanded(
+                  child: FutureBuilder<List<MapEntry>>(
+                future: getAllPlayList(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator(); // hoặc widget loading khác
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Text('No data available');
+                  } else {
+                    // Nếu dữ liệu có sẵn, hiển thị GridView
+                    List<MapEntry> playlists = snapshot.data!;
+                    return GridView.builder(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 8.0,
+                        mainAxisSpacing: 8.0,
+                      ),
+                      itemCount: playlists.length,
+                      itemBuilder: (context, index) {
+                        MapEntry<dynamic, dynamic> playlist = playlists[index];
+                        return PlayListCard(playlist, songInfo);
+                      },
+                    );
+                  }
+                },
+              ))
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }

@@ -7,6 +7,7 @@ import 'package:flutter_music_clouds/models/commonJustAudio.dart';
 import 'package:flutter_music_clouds/screens/PlaylistPlayer.dart';
 import 'package:flutter_music_clouds/screens/Songs.dart';
 import 'package:flutter_music_clouds/widgets/SongGenre.dart';
+import 'package:flutter_music_clouds/widgets/artistWidget.dart';
 import 'package:flutter_music_clouds/widgets/inheritedWidget.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
@@ -25,6 +26,8 @@ class _HomeState extends State<Home> {
   late List<SongInfo> recentPlayed = [];
   late List<SongInfo> songAsType = [];
   late List<String> favoriteTypes = [];
+  late List<String> favoriteArtists = [];
+  late List<FilterObject> recommendGenre = [];
   // late SongInfo playingSong = {} as SongInfo;
 
   @override
@@ -35,6 +38,8 @@ class _HomeState extends State<Home> {
     getPlaylist();
     getSongsAsType();
     getFavoriteTypes();
+    getFavoriteArtist();
+    getRecommendSongs();
     // getData();
 
     DatabaseReference songInfosRef =
@@ -88,6 +93,90 @@ class _HomeState extends State<Home> {
     super.dispose();
   }
 
+  Future getRecommendSongs() async {
+    // đề xuất các bài  dựa trên ca sĩ, thể loại, đã nghe
+    DatabaseReference ref = FirebaseDatabase.instance.ref().child('app/users');
+    final snapshot =
+        await ref.orderByChild('id').equalTo(currentUser!.uid).once();
+    final favSongIds = snapshot.snapshot.children.first
+        .child('recentPlayed')
+        .value
+        .toString()
+        .split(',')
+        .toSet()
+        .toList();
+
+    final List<FilterObject> recommend = [];
+    for (String id in favSongIds) {
+      if (id != 'null' && id != '') {
+        final songRef = FirebaseDatabase.instance.ref();
+        final songSnapshot = await songRef.child('app/songInfos/$id').get();
+        if (songSnapshot.exists) {
+          final recommendArtist =
+              songSnapshot.child('lowerCaseArtistName').value.toString();
+          final recommendType =
+              songSnapshot.child('lowerCaseType').value.toString();
+          final artist =
+              FilterObject(filterAs: 'artist', value: recommendArtist);
+          if (!recommend.contains(artist)) {
+            print('add ${artist.filterAs}: ${artist.value}');
+            recommend.add(artist);
+          }
+          final type = FilterObject(filterAs: 'type', value: recommendType);
+          if (!recommend.contains(type)) {
+            print('add ${type.filterAs}: ${type.value}');
+            recommend.add(type);
+          }
+        } else {
+          print('no snapshot exist');
+        }
+      }
+    }
+    if (mounted) {
+      // print('favorite types: $recommend');
+      setState(() {
+        recommendGenre = recommend;
+      });
+    }
+    return recommend;
+  }
+
+  Future getFavoriteArtist() async {
+    DatabaseReference ref = FirebaseDatabase.instance.ref().child('app/users');
+    final snapshot =
+        await ref.orderByChild('id').equalTo(currentUser!.uid).once();
+    final favSongIds = snapshot.snapshot.children.first
+        .child('playlist/favorite')
+        .value
+        .toString()
+        .split(',')
+        .toSet()
+        .toList();
+    final List<String> favArtist = [];
+    for (String id in favSongIds) {
+      if (id != 'null' && id != '') {
+        final songRef = FirebaseDatabase.instance.ref();
+        final songSnapshot = await songRef.child('app/songInfos/$id').get();
+        if (songSnapshot.exists) {
+          final artistName =
+              songSnapshot.child('lowerCaseArtistName').value.toString();
+          if (!favArtist.contains(artistName)) {
+            favArtist.add(artistName);
+          }
+        } else {
+          print('no snapshot');
+        }
+      }
+    }
+    if (mounted) {
+      // print('favorite types: $favArtist');
+      setState(() {
+        favoriteArtists = favArtist;
+      });
+    }
+    return favArtist;
+  }
+
   Future getFavoriteTypes() async {
     DatabaseReference ref = FirebaseDatabase.instance.ref().child('app/users');
     final snapshot =
@@ -116,7 +205,7 @@ class _HomeState extends State<Home> {
       }
     }
     if (mounted) {
-      print('favorite types: $favTypes');
+      print('favorite types: ${favTypes.toString()}');
       setState(() {
         favoriteTypes = favTypes;
       });
@@ -432,10 +521,53 @@ class _HomeState extends State<Home> {
                   child: SingleChildScrollView(
                 child: Column(
                   children: <Widget>[
+                    // Đề xuất cho bạn
+
+                    Container(
+                      height: 240,
+                      decoration: const BoxDecoration(
+                          color: Color.fromARGB(255, 31, 29, 29)),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10.0),
+                            child: const Text(
+                              'Đề xuất cho bạn',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.left,
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: recommendGenre.length,
+                              itemBuilder: (context, index) {
+                                if (recommendGenre[index].filterAs ==
+                                    'artist') {
+                                  return ArtistWidget(
+                                      artist: recommendGenre[index].value);
+                                } else {
+                                  return MusicGenreWidget(
+                                      songType: recommendGenre[index].value);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Container(
+                      height: 30.0,
+                    ),
+
                     // Có thể bạn cũng thích
 
                     Container(
-                      height: 250,
+                      height: 230,
                       decoration: const BoxDecoration(
                           color: Color.fromARGB(255, 31, 29, 29)),
                       child: Column(
@@ -458,6 +590,42 @@ class _HomeState extends State<Home> {
                               itemBuilder: (context, index) {
                                 return MusicGenreWidget(
                                     songType: favoriteTypes[index]);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Container(
+                      height: 30.0,
+                    ),
+
+                    // Ca sĩ của bạn
+                    Container(
+                      height: 260,
+                      decoration: const BoxDecoration(
+                          color: Color.fromARGB(255, 31, 29, 29)),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10.0),
+                            child: const Text(
+                              'Ca sĩ của bạn',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.left,
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: favoriteArtists.length,
+                              itemBuilder: (context, index) {
+                                return ArtistWidget(
+                                    artist: favoriteArtists[index]);
                               },
                             ),
                           ),
@@ -992,4 +1160,25 @@ class _HomeState extends State<Home> {
           Container(child: _buildPlaybackStatusWidget(fatherContext)),
         ]));
   }
+}
+
+class FilterObject {
+  String filterAs;
+  String value;
+
+  FilterObject({
+    required this.filterAs,
+    required this.value,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FilterObject &&
+          runtimeType == other.runtimeType &&
+          filterAs == other.filterAs &&
+          value == other.value;
+
+  @override
+  int get hashCode => filterAs.hashCode ^ value.hashCode;
 }
